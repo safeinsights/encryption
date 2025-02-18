@@ -11,5 +11,8 @@ jobs:
     permissions:
       pull-requests: write
     steps:
+      - uses: actions/checkout@v4
+      - name: Install packages
+        run: npm ci
       - name: Run Specs
         run: npm run ci
