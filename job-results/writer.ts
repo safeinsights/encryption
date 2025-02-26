@@ -41,9 +41,9 @@ export class ResultsWriter {
         }
     }
 
-    async generate() {
-        await this.zip.close()
+    async generate(): Promise<Blob> {
         await this.zip.add('manifest.json', new TextReader(JSON.stringify(this.manifest)))
+        await this.zip.close()
 
         return this.zipBlobWriter.getData()
     }
