@@ -63,13 +63,17 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
             name: 'RSA-PSS', // or "RSA-OAEP" depending on your key usage
             hash: 'SHA-256',
         },
-        true,
+        true, // Extractable - intended to be used with fingerprintFromPrivateKey
         ['sign'],
     )
     return privateKeyImported
 }
 
-export async function fingerprintFromPrivateKey(privateKey: CryptoKey): Promise<string> {
+export async function fingerprintFromPrivateKey(privateKey: CryptoKey | string): Promise<string> {
+    if (typeof privateKey === 'string') {
+        privateKey = await privateKeyFromString(privateKey)
+    }
+
     // Export the private key as JWK to extract the public key parameters (n and e)
     const jwk = await crypto.subtle.exportKey('jwk', privateKey)
 
