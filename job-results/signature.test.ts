@@ -14,7 +14,7 @@ describe('rsa key signature', async () => {
         const reader = new ResultsReader()
         await reader.parseKeys(privkey)
 
-        expect(reader.publicKeyFingerPrint).toBeTruthy()
-        expect(reader.publicKeyFingerPrint).toEqual(PUB_KEY_SIGNATURE)
+        expect(reader.publicKeyFingerprint).toBeTruthy()
+        expect(reader.publicKeyFingerprint).toEqual(PUB_KEY_SIGNATURE)
     })
 })

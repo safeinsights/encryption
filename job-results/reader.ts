@@ -1,6 +1,6 @@
 import { ZipReader, Entry, BlobReader, TextWriter, BlobWriter } from '@zip.js/zip.js'
 import type { ResultsManifest, ResultsFile } from './types'
-import { pemToArrayBuffer, arrayBufferToHex } from './util'
+import { privateKeyFromString, fingerprintFromPrivateKey } from './util'
 
 export class ResultsReader {
     manifest: ResultsManifest = {
@@ -8,7 +8,7 @@ export class ResultsReader {
     }
 
     private zipReader: ZipReader<Blob>
-    publicKeyFingerPrint: string
+    publicKeyFingerprint: string
     privateKey: CryptoKey
 
     async decode(zipBlob: Blob) {
@@ -48,10 +48,10 @@ export class ResultsReader {
 
         const encryptedData = await entry.getData(new BlobWriter())
 
-        const encptionKey = fileEntry.keys[this.publicKeyFingerPrint]
-        if (!encptionKey) throw new Error(`file was not encypted with key signature ${this.publicKeyFingerPrint}`)
+        const encryptionKey = fileEntry.keys[this.publicKeyFingerprint]
+        if (!encryptionKey) throw new Error(`file was not encypted with key signature ${this.publicKeyFingerprint}`)
 
-        const aesKey = await this.decryptKeyWithPrivateKey(encptionKey.crypt)
+        const aesKey = await this.decryptKeyWithPrivateKey(encryptionKey.crypt)
 
         const iv = Uint8Array.from(Buffer.from(fileEntry.iv, 'base64'))
         return this.decryptData(encryptedData, aesKey, iv)
@@ -84,52 +84,7 @@ export class ResultsReader {
     }
 
     async parseKeys(privateKeyString: string) {
-        const privateKeyBuffer = pemToArrayBuffer(privateKeyString)
-
-        // Import the RSA private key.
-        // Adjust the algorithm (e.g., "RSA-PSS", "RSA-OAEP") and usages as needed.
-        this.privateKey = await crypto.subtle.importKey(
-            'pkcs8',
-            privateKeyBuffer,
-            {
-                name: 'RSA-PSS', // or "RSA-OAEP" depending on your key usage
-                hash: 'SHA-256',
-            },
-            true,
-            ['sign'],
-        )
-
-        // Export the private key as JWK to extract the public key parameters (n and e)
-        const jwk = await crypto.subtle.exportKey('jwk', this.privateKey)
-
-        // Create a JWK object for the public key using modulus (n) and exponent (e)
-        const publicJwk = {
-            kty: jwk.kty,
-            n: jwk.n,
-            e: jwk.e,
-            alg: jwk.alg,
-            ext: true,
-        }
-
-        // Import the public key
-        const publicKey = await crypto.subtle.importKey(
-            'jwk',
-            publicJwk,
-            {
-                name: 'RSA-PSS', // ensure this matches the private key's algorithm
-                hash: 'SHA-256',
-            },
-            true,
-            ['verify'],
-        )
-
-        // Export the public key as SPKI (DER encoded)
-        const spki = await crypto.subtle.exportKey('spki', publicKey)
-
-        // Compute the SHA‑256 digest (fingerprint) of the SPKI data
-        const fingerprintBuffer = await crypto.subtle.digest('SHA-256', spki)
-
-        // Convert the ArrayBuffer fingerprint into a hexadecimal string (colon-delimited)
-        this.publicKeyFingerPrint = arrayBufferToHex(fingerprintBuffer)
+        this.privateKey = await privateKeyFromString(privateKeyString)
+        this.publicKeyFingerprint = await fingerprintFromPrivateKey(this.privateKey)
     }
 }
