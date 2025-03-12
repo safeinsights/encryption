@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateKeyPair, exportKey, createFingerprint } from './keypair' // Adjust the import according to your file structure
+import { generateKeyPair, exportKey, createFingerprint } from './keypair'
 
 describe('Encryption Library Tests', () => {
     it('should generate a public/private key pair', async () => {
