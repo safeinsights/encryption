@@ -1,4 +1,3 @@
-// Function to generate a public/private key pair using Web Crypto API
 export async function generateKeyPair(): Promise<{ publicKey: CryptoKey; privateKey: CryptoKey }> {
     const keyPair = await crypto.subtle.generateKey(
         {
@@ -17,12 +16,10 @@ export async function generateKeyPair(): Promise<{ publicKey: CryptoKey; private
     }
 }
 
-// Function to export a CryptoKey to a format that can be stored or transmitted
 export async function exportKey(key: CryptoKey, format: 'spki' | 'pkcs8'): Promise<ArrayBuffer> {
     return crypto.subtle.exportKey(format, key)
 }
 
-// Function to create a fingerprint from the public key
 export async function createFingerprint(publicKey: CryptoKey): Promise<string> {
     const exportedKey = await exportKey(publicKey, 'spki')
     const hashBuffer = await crypto.subtle.digest('SHA-256', exportedKey)
