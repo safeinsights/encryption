@@ -49,7 +49,7 @@ export class ResultsReader {
         const encryptedData = await entry.getData(new BlobWriter())
 
         const encryptionKey = fileEntry.keys[this.publicKeyFingerprint]
-        if (!encryptionKey) throw new Error(`file was not encypted with key signature ${this.publicKeyFingerprint}`)
+        if (!encryptionKey) throw new Error(`file was not encrypted with key signature ${this.publicKeyFingerprint}`)
 
         const aesKey = await this.decryptKeyWithPrivateKey(encryptionKey.crypt)
 
