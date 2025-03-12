@@ -11,7 +11,7 @@ describe('Encryption Library Tests', () => {
 
     it('should export a public key in SPKI format', async () => {
         const { publicKey } = await generateKeyPair()
-        const exportedKey = await exportKey(publicKey, "spki")
+        const exportedKey = await exportKey(publicKey, 'spki')
 
         expect(exportedKey).toBeInstanceOf(ArrayBuffer)
         expect(exportedKey.byteLength).toBeGreaterThan(0)
@@ -19,7 +19,7 @@ describe('Encryption Library Tests', () => {
 
     it('should export a private key in PKCS8 format', async () => {
         const { privateKey } = await generateKeyPair()
-        const exportedKey = await exportKey(privateKey, "pkcs8")
+        const exportedKey = await exportKey(privateKey, 'pkcs8')
 
         expect(exportedKey).toBeInstanceOf(ArrayBuffer)
         expect(exportedKey.byteLength).toBeGreaterThan(0)
