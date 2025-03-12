@@ -12,8 +12,8 @@ export class ResultsReader {
     privateKey: CryptoKey
 
     async decryptZip(zipBlob: Blob, privateKey: string): Promise<string[]> {
-        this.decode(zipBlob)
-        this.parseKeys(privateKey)
+        await this.decode(zipBlob)
+        await this.parseKeys(privateKey)
         const generator = await this.entries()
         const entries = []
         for await (const entry of generator) {
