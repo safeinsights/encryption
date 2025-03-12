@@ -23,6 +23,7 @@ export async function generateKeyPair(): Promise<{
     const exportedPrivateKey = await window.crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
     const privateKeyString = btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey)))
 
+    // TODO Should we return the exported public/private keys?
     return {
         publicKey: keyPair.publicKey,
         privateKey: keyPair.privateKey,
