@@ -7,7 +7,7 @@ export async function generateKeyPair(): Promise<{ publicKey: CryptoKey; private
             hash: 'SHA-256',
         },
         true, // whether the key is extractable (i.e. can be used in exportKey)
-        ['sign', 'verify'], // key usages
+        ['encrypt', 'decrypt'], // key usages
     )
 
     return {
