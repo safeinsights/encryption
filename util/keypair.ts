@@ -1,4 +1,9 @@
-export async function generateKeyPair(): Promise<{ publicKey: CryptoKey; privateKey: CryptoKey }> {
+export async function generateKeyPair(): Promise<{
+    publicKey: CryptoKey,
+    privateKey: CryptoKey,
+    publicKeyString: string,
+    privateKeyString: string
+}> {
     const keyPair = await crypto.subtle.generateKey(
         {
             name: 'RSASSA-PKCS1-v1_5',
@@ -10,9 +15,19 @@ export async function generateKeyPair(): Promise<{ publicKey: CryptoKey; private
         ['encrypt', 'decrypt'], // key usages
     )
 
+    // Export the public key
+    const exportedPublicKey = await window.crypto.subtle.exportKey('spki', keyPair.publicKey)
+    const publicKeyString = btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey)))
+
+    // Export the private key
+    const exportedPrivateKey = await window.crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
+    const privateKeyString = btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey)))
+
     return {
         publicKey: keyPair.publicKey,
         privateKey: keyPair.privateKey,
+        publicKeyString,
+        privateKeyString,
     }
 }
 
