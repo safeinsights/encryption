@@ -11,9 +11,19 @@ export class ResultsReader {
     publicKeyFingerprint: string
     privateKey: CryptoKey
 
-    async decode(zipBlob: Blob) {
-        // this.parseKeys(privateKeyString)
+    async decryptZip(zipBlob: Blob, privateKey: string): Promise<string[]> {
+        this.decode(zipBlob)
+        this.parseKeys(privateKey)
+        const generator = await this.entries()
+        const entries = []
+        for await (const entry of generator) {
+            const decodedContents = new TextDecoder().decode(entry.contents)
+            entries.push(decodedContents)
+        }
+        return entries
+    }
 
+    private async decode(zipBlob: Blob) {
         this.zipReader = new ZipReader(new BlobReader(zipBlob))
 
         const entries = await this.zipReader.getEntries()
@@ -26,11 +36,9 @@ export class ResultsReader {
         if (!this.manifest) {
             throw new Error('Manifest not found in zip archive.')
         }
-
-        return this
     }
 
-    async *entries(): AsyncGenerator<ResultsFile & { contents: ArrayBuffer }, void, void> {
+    private async *entries(): AsyncGenerator<ResultsFile & { contents: ArrayBuffer }, void, void> {
         const entries = await this.zipReader.getEntries()
         for (const entry of entries) {
             const file = this.manifest.files[entry.filename]
@@ -41,7 +49,7 @@ export class ResultsReader {
         }
     }
 
-    async readFile(fileEntry: ResultsFile, entry: Entry): Promise<ArrayBuffer> {
+    private async readFile(fileEntry: ResultsFile, entry: Entry): Promise<ArrayBuffer> {
         if (!entry.getData) {
             throw new Error('Entry does not have data')
         }
