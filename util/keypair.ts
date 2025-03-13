@@ -1,10 +1,10 @@
 export async function generateKeyPair(): Promise<{
-    publicKey: CryptoKey,
-    privateKey: CryptoKey,
-    exportedPublicKey: ArrayBuffer,
-    exportedPrivateKey: ArrayBuffer,
-    publicKeyString: string,
-    privateKeyString: string,
+    publicKey: CryptoKey
+    privateKey: CryptoKey
+    exportedPublicKey: ArrayBuffer
+    exportedPrivateKey: ArrayBuffer
+    publicKeyString: string
+    privateKeyString: string
     fingerprint: string
 }> {
     const keyPair = await crypto.subtle.generateKey(
@@ -146,4 +146,3 @@ export async function fingerprintFromPrivateKey(privateKey: CryptoKey | string):
     // Convert the ArrayBuffer fingerprint into a hexadecimal string (colon-delimited)
     return arrayBufferToHex(fingerprintBuffer)
 }
-

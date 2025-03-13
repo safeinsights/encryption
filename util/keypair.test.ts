@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-    generateKeyPair,
-    fingerprintFromPublicKey,
-    fingerprintFromPrivateKey,
-    privateKeyFromString
-} from './keypair'
+import { generateKeyPair, fingerprintFromPublicKey, fingerprintFromPrivateKey, privateKeyFromString } from './keypair'
 
 describe('Encryption Library Tests', () => {
     it('should generate a public/private key pair and export keys', async () => {
@@ -15,7 +10,7 @@ describe('Encryption Library Tests', () => {
             exportedPrivateKey,
             publicKeyString,
             privateKeyString,
-            fingerprint
+            fingerprint,
         } = await generateKeyPair()
 
         expect(publicKey).toBeInstanceOf(CryptoKey)
