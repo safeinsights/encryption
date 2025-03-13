@@ -100,11 +100,11 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
         'pkcs8',
         privateKeyBuffer,
         {
-            name: 'RSA-PSS', // or "RSA-OAEP" depending on your key usage
+            name: 'RSA-OAEP', // or "RSA-PSS" depending on your key usage
             hash: 'SHA-256',
         },
         true, // Extractable - intended to be used with fingerprintFromPrivateKey
-        ['sign'],
+        ['decrypt'],
     )
 }
 
