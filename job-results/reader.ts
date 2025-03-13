@@ -1,6 +1,6 @@
 import { ZipReader, Entry, BlobReader, TextWriter, BlobWriter } from '@zip.js/zip.js'
 import type { ResultsManifest, ResultsFile } from './types'
-import { privateKeyFromString, fingerprintFromPrivateKey } from './util'
+import { fingerprintFromPrivateKey, privateKeyFromString } from '../util'
 
 export class ResultsReader {
     manifest: ResultsManifest = {
