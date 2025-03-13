@@ -28,6 +28,7 @@ export async function generateKeyPair(): Promise<{
 
     const fingerprint = await fingerprintFromPublicKey(publicKeyString)
 
+    // TODO Figure out what we want to export
     return {
         publicKey: keyPair.publicKey,
         privateKey: keyPair.privateKey,
