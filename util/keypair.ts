@@ -4,7 +4,8 @@ export async function generateKeyPair(): Promise<{
     exportedPublicKey: ArrayBuffer,
     exportedPrivateKey: ArrayBuffer,
     publicKeyString: string,
-    privateKeyString: string
+    privateKeyString: string,
+    fingerprint: string
 }> {
     const keyPair = await crypto.subtle.generateKey(
         {
@@ -25,6 +26,8 @@ export async function generateKeyPair(): Promise<{
     const exportedPrivateKey = await window.crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
     const privateKeyString = btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey)))
 
+    const fingerprint = await createFingerprint(keyPair.publicKey)
+
     return {
         publicKey: keyPair.publicKey,
         privateKey: keyPair.privateKey,
@@ -32,6 +35,7 @@ export async function generateKeyPair(): Promise<{
         exportedPrivateKey,
         publicKeyString,
         privateKeyString,
+        fingerprint,
     }
 }
 
