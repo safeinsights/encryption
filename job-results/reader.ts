@@ -1,6 +1,6 @@
 import { ZipReader, Entry, BlobReader, TextWriter, BlobWriter } from '@zip.js/zip.js'
 import type { ResultsManifest, ResultsFile } from './types'
-import { privateKeyFromString, fingerprintFromPrivateKey } from './util'
+import { fingerprintFromPrivateKey, privateKeyFromString } from '../util'
 
 export class ResultsReader {
     manifest: ResultsManifest = {
@@ -57,7 +57,7 @@ export class ResultsReader {
         const encryptedData = await entry.getData(new BlobWriter())
 
         const encryptionKey = fileEntry.keys[this.publicKeyFingerprint]
-        if (!encryptionKey) throw new Error(`file was not encypted with key signature ${this.publicKeyFingerprint}`)
+        if (!encryptionKey) throw new Error(`file was not encrypted with key signature ${this.publicKeyFingerprint}`)
 
         const aesKey = await this.decryptKeyWithPrivateKey(encryptionKey.crypt)
 

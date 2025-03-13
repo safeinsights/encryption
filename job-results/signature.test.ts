@@ -9,10 +9,10 @@ const PUB_KEY_SIGNATURE = '6a9992d6014343f69a9dd5f65a448a4027b3a7eb1a87a9cddd076
 
 describe('rsa key signature', async () => {
     it('reader should match writer', async () => {
-        const privkey = readPrivateKey()
+        const privateKey = readPrivateKey()
 
         const reader = new ResultsReader()
-        await reader.parseKeys(privkey)
+        await reader.parseKeys(privateKey)
 
         expect(reader.publicKeyFingerprint).toBeTruthy()
         expect(reader.publicKeyFingerprint).toEqual(PUB_KEY_SIGNATURE)

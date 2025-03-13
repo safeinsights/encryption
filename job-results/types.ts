@@ -9,7 +9,7 @@ export type PublicKey = {
 
 export type FileKeyMap = {
     [fingerprint: string]: {
-        crypt: string // encypted version of the AES symetric key used to encrypt file
+        crypt: string // encrypted version of the AES symmetric key used to encrypt file
     }
 }
 
@@ -17,7 +17,7 @@ export type ResultsFile = {
     path: string
     bytes: number // size of the file in bytes BEFORE encryption
     iv: string // initialization vector for encryption, should be unique for each file
-    keys: FileKeyMap // mapping of key fingerprint <-> cypted AES key
+    keys: FileKeyMap // mapping of key fingerprint <-> encrypted AES key
 }
 
 export type ResultsManifest = {

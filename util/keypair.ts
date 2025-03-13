@@ -1,3 +1,45 @@
+export async function generateKeyPair(): Promise<{
+    publicKey: CryptoKey
+    privateKey: CryptoKey
+    exportedPublicKey: ArrayBuffer
+    exportedPrivateKey: ArrayBuffer
+    publicKeyString: string
+    privateKeyString: string
+    fingerprint: string
+}> {
+    const keyPair = await crypto.subtle.generateKey(
+        {
+            name: 'RSA-OAEP',
+            modulusLength: 2048,
+            publicExponent: new Uint8Array([1, 0, 1]),
+            hash: 'SHA-256',
+        },
+        true, // whether the key is extractable (i.e. can be used in exportKey)
+        ['encrypt', 'decrypt'], // key usages
+    )
+
+    // Export the public key
+    const exportedPublicKey = await crypto.subtle.exportKey('spki', keyPair.publicKey)
+    const publicKeyString = btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey)))
+
+    // Export the private key
+    const exportedPrivateKey = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
+    const privateKeyString = btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey)))
+
+    const fingerprint = await fingerprintFromPublicKey(publicKeyString)
+
+    // TODO Figure out what we want to export
+    return {
+        publicKey: keyPair.publicKey,
+        privateKey: keyPair.privateKey,
+        exportedPublicKey,
+        exportedPrivateKey,
+        publicKeyString,
+        privateKeyString,
+        fingerprint,
+    }
+}
+
 // Helper: Convert a PEM encoded string to an ArrayBuffer.
 export function pemToArrayBuffer(pem: string) {
     // Remove the PEM header, footer, and line breaks.
@@ -46,9 +88,7 @@ export async function fingerprintFromPublicKey(publicKey: string): Promise<strin
     const fingerprintBuffer = await crypto.subtle.digest('SHA-256', spki)
 
     // Convert the ArrayBuffer fingerprint into a hexadecimal string (colon-delimited)
-    const fingerprint = arrayBufferToHex(fingerprintBuffer)
-
-    return fingerprint
+    return arrayBufferToHex(fingerprintBuffer)
 }
 
 export async function privateKeyFromString(privateKey: string): Promise<CryptoKey> {
@@ -56,7 +96,7 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
 
     // Import the RSA private key.
     // Adjust the algorithm (e.g., "RSA-PSS", "RSA-OAEP") and usages as needed.
-    const privateKeyImported = await crypto.subtle.importKey(
+    return await crypto.subtle.importKey(
         'pkcs8',
         privateKeyBuffer,
         {
@@ -66,7 +106,6 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
         true, // Extractable - intended to be used with fingerprintFromPrivateKey
         ['decrypt'],
     )
-    return privateKeyImported
 }
 
 export async function fingerprintFromPrivateKey(privateKey: CryptoKey | string): Promise<string> {
