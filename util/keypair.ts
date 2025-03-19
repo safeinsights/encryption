@@ -99,7 +99,7 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
         'pkcs8',
         privateKeyBuffer,
         {
-            name: 'RSA-OAEP',
+            name: 'RSA-OAEP', // or "RSA-PSS" depending on your key usage
             hash: 'SHA-256',
         },
         true, // Extractable - intended to be used with fingerprintFromPrivateKey
@@ -129,7 +129,7 @@ export async function fingerprintFromPrivateKey(privateKey: CryptoKey | string):
         'jwk',
         publicJwk,
         {
-            name: 'RSA-PSS', // ensure this matches the private key's algorithm
+            name: 'RSA-OAEP', // ensure this matches the private key's algorithm
             hash: 'SHA-256',
         },
         true,
