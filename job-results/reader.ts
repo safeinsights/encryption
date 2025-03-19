@@ -1,6 +1,6 @@
-import { ZipReader, Entry, BlobReader, TextWriter, BlobWriter } from '@zip.js/zip.js'
-import type { ResultsManifest, ResultsFile } from './types'
-import { fingerprintFromPrivateKey, privateKeyFromString } from '../util'
+import { BlobReader, BlobWriter, Entry, TextWriter, ZipReader } from '@zip.js/zip.js'
+import type { ResultsFile, ResultsManifest } from './types'
+import { privateKeyFromString } from '../util'
 
 export class ResultsReader {
     manifest: ResultsManifest = {
@@ -94,6 +94,5 @@ export class ResultsReader {
 
     async parseKeys(privateKeyString: string) {
         this.privateKey = await privateKeyFromString(privateKeyString)
-        // this.publicKeyFingerprint = await fingerprintFromPrivateKey(this.privateKey)
     }
 }
