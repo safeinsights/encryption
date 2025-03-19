@@ -10,7 +10,7 @@ export async function generateKeyPair(): Promise<{
     const keyPair = await crypto.subtle.generateKey(
         {
             name: 'RSA-OAEP',
-            modulusLength: 2048,
+            modulusLength: 4096,
             publicExponent: new Uint8Array([1, 0, 1]),
             hash: 'SHA-256',
         },
@@ -95,12 +95,11 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
     const privateKeyBuffer = pemToArrayBuffer(privateKey)
 
     // Import the RSA private key.
-    // Adjust the algorithm (e.g., "RSA-PSS", "RSA-OAEP") and usages as needed.
     return await crypto.subtle.importKey(
         'pkcs8',
         privateKeyBuffer,
         {
-            name: 'RSA-OAEP', // or "RSA-PSS" depending on your key usage
+            name: 'RSA-OAEP',
             hash: 'SHA-256',
         },
         true, // Extractable - intended to be used with fingerprintFromPrivateKey
@@ -130,7 +129,7 @@ export async function fingerprintFromPrivateKey(privateKey: CryptoKey | string):
         'jwk',
         publicJwk,
         {
-            name: 'RSA-PSS', // ensure this matches the private key's algorithm
+            name: 'RSA-OAEP', // ensure this matches the private key's algorithm
             hash: 'SHA-256',
         },
         true,
