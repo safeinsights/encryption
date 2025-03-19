@@ -40,6 +40,31 @@ export async function generateKeyPair(): Promise<{
     }
 }
 
+export type SerializedBuffer = {
+    type: string
+    data: number[]
+}
+
+export function serializedBufferToArrayBuffer(input: SerializedBuffer): ArrayBuffer {
+    return new Uint8Array(input.data).buffer
+}
+
+export async function serializedBufferToPublicKey(buffer: SerializedBuffer) {
+    const publicKeyBuffer = serializedBufferToArrayBuffer(buffer)
+
+    const publicKeyImported = await crypto.subtle.importKey(
+        'spki',
+        publicKeyBuffer,
+        {
+            name: 'RSA-OAEP',
+            hash: 'SHA-256',
+        },
+        true,
+        ['encrypt'],
+    )
+    return publicKeyImported
+}
+
 // Helper: Convert a PEM encoded string to an ArrayBuffer.
 export function pemToArrayBuffer(pem: string) {
     // Remove the PEM header, footer, and line breaks.

@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { generateKeyPair, fingerprintFromPublicKey, fingerprintFromPrivateKey, privateKeyFromString } from './keypair'
+import {
+    arrayBufferToHex,
+    generateKeyPair,
+    fingerprintFromPublicKey,
+    fingerprintFromPrivateKey,
+    privateKeyFromString,
+    serializedBufferToPublicKey,
+    pemToArrayBuffer,
+    SerializedBuffer,
+} from './keypair'
+import { readPublicKey } from '../testing'
 
 describe('Encryption Library Tests', () => {
     it('should generate a public/private key pair and export keys', async () => {
@@ -55,5 +65,17 @@ describe('Encryption Library Tests', () => {
         const fingerprint = await fingerprintFromPrivateKey(privateKey)
         expect(fingerprint).toBeTypeOf('string')
         expect(fingerprint.length).toBe(64) // SHA-256 hash is 64 hex characters
+    })
+
+    it('can parse a public key from binary data', async () => {
+        const pubKeyStr = readPublicKey()
+        const origFingerprint = await fingerprintFromPublicKey(pubKeyStr)
+        // this is what is produced by JSON.stringify a node Buffer
+        const serialized = JSON.parse(JSON.stringify(Buffer.from(pemToArrayBuffer(pubKeyStr)))) as SerializedBuffer
+        const publicKey = await serializedBufferToPublicKey(serialized)
+        const exportedKey = await crypto.subtle.exportKey('spki', publicKey)
+        const afterConversionFingerprint = await crypto.subtle.digest('SHA-256', exportedKey)
+
+        expect(origFingerprint).toEqual(arrayBufferToHex(afterConversionFingerprint))
     })
 })
