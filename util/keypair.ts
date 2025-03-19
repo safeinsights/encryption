@@ -10,7 +10,7 @@ export async function generateKeyPair(): Promise<{
     const keyPair = await crypto.subtle.generateKey(
         {
             name: 'RSA-OAEP',
-            modulusLength: 2048,
+            modulusLength: 4096,
             publicExponent: new Uint8Array([1, 0, 1]),
             hash: 'SHA-256',
         },
@@ -95,7 +95,6 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
     const privateKeyBuffer = pemToArrayBuffer(privateKey)
 
     // Import the RSA private key.
-    // Adjust the algorithm (e.g., "RSA-PSS", "RSA-OAEP") and usages as needed.
     return await crypto.subtle.importKey(
         'pkcs8',
         privateKeyBuffer,
@@ -108,6 +107,7 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
     )
 }
 
+// TODO Determine whether or not we can just remove this function entirely
 export async function fingerprintFromPrivateKey(privateKey: CryptoKey | string): Promise<string> {
     if (typeof privateKey === 'string') {
         privateKey = await privateKeyFromString(privateKey)
@@ -130,11 +130,11 @@ export async function fingerprintFromPrivateKey(privateKey: CryptoKey | string):
         'jwk',
         publicJwk,
         {
-            name: 'RSA-PSS', // ensure this matches the private key's algorithm
+            name: 'RSA-OAEP', // ensure this matches the private key's algorithm
             hash: 'SHA-256',
         },
         true,
-        ['verify'],
+        ['encrypt'],
     )
 
     // Export the public key as SPKI (DER encoded)
