@@ -9,7 +9,7 @@ export async function generateKeyPair(): Promise<{
 }> {
     const keyPair = await crypto.subtle.generateKey(
         {
-            name: 'RSA-PSS',
+            name: 'RSA-OAEP',
             modulusLength: 4096,
             publicExponent: new Uint8Array([1, 0, 1]),
             hash: 'SHA-256',
@@ -74,7 +74,7 @@ export async function fingerprintFromPublicKey(publicKey: string): Promise<strin
         'spki',
         publicKeyBuffer,
         {
-            name: 'RSA-PSS',
+            name: 'RSA-OAEP',
             hash: 'SHA-256',
         },
         true,
@@ -99,7 +99,7 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
         'pkcs8',
         privateKeyBuffer,
         {
-            name: 'RSA-PSS',
+            name: 'RSA-OAEP',
             hash: 'SHA-256',
         },
         true, // Extractable - intended to be used with fingerprintFromPrivateKey

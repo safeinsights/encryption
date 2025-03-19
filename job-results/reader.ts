@@ -70,7 +70,7 @@ export class ResultsReader {
 
         const rawKey = await crypto.subtle.decrypt(
             {
-                name: 'RSA-PSS',
+                name: 'RSA-OAEP',
             },
             this.privateKey,
             encryptedKey,

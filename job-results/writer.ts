@@ -55,7 +55,7 @@ export class ResultsWriter {
             'spki',
             publicKeyBuffer,
             {
-                name: 'RSA-PSS',
+                name: 'RSA-OAEP',
                 hash: 'SHA-256',
             },
             false,
@@ -65,7 +65,7 @@ export class ResultsWriter {
         // Encrypt the AES key
         const encryptedKey = await crypto.subtle.encrypt(
             {
-                name: 'RSA-PSS',
+                name: 'RSA-OAEP',
             },
             publicKey,
             aesKey,
