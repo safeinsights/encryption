@@ -107,6 +107,7 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
     )
 }
 
+// TODO Determine whether or not we can just remove this function entirely
 export async function fingerprintFromPrivateKey(privateKey: CryptoKey | string): Promise<string> {
     if (typeof privateKey === 'string') {
         privateKey = await privateKeyFromString(privateKey)
