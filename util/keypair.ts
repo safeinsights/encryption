@@ -133,7 +133,7 @@ export async function fingerprintFromPrivateKey(privateKey: CryptoKey | string):
             hash: 'SHA-256',
         },
         true,
-        ['verify'],
+        ['encrypt'],
     )
 
     // Export the public key as SPKI (DER encoded)

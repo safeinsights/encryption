@@ -53,7 +53,6 @@ describe('Encryption Library Tests', () => {
         const { privateKeyString } = await generateKeyPair()
         const privateKey = await privateKeyFromString(privateKeyString)
         const fingerprint = await fingerprintFromPrivateKey(privateKey)
-
         expect(fingerprint).toBeTypeOf('string')
         expect(fingerprint.length).toBe(64) // SHA-256 hash is 64 hex characters
     })

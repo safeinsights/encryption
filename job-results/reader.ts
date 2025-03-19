@@ -8,10 +8,11 @@ export class ResultsReader {
     }
 
     private zipReader: ZipReader<Blob>
-    publicKeyFingerprint: string
+    fingerprint: string
     privateKey: CryptoKey
 
-    async decryptZip(zipBlob: Blob, privateKey: string): Promise<string[]> {
+    async decryptZip(zipBlob: Blob, privateKey: string, fingerprint: string): Promise<string[]> {
+        this.fingerprint = fingerprint
         await this.decode(zipBlob)
         await this.parseKeys(privateKey)
         const generator = await this.entries()
@@ -56,8 +57,8 @@ export class ResultsReader {
 
         const encryptedData = await entry.getData(new BlobWriter())
 
-        const encryptionKey = fileEntry.keys[this.publicKeyFingerprint]
-        if (!encryptionKey) throw new Error(`file was not encrypted with key signature ${this.publicKeyFingerprint}`)
+        const encryptionKey = fileEntry.keys[this.fingerprint]
+        if (!encryptionKey) throw new Error(`file was not encrypted with key signature ${this.fingerprint}`)
 
         const aesKey = await this.decryptKeyWithPrivateKey(encryptionKey.crypt)
 
@@ -93,6 +94,6 @@ export class ResultsReader {
 
     async parseKeys(privateKeyString: string) {
         this.privateKey = await privateKeyFromString(privateKeyString)
-        this.publicKeyFingerprint = await fingerprintFromPrivateKey(this.privateKey)
+        // this.publicKeyFingerprint = await fingerprintFromPrivateKey(this.privateKey)
     }
 }
