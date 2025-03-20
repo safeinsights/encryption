@@ -4,7 +4,7 @@ type ResultsFileKey = string
 
 export type PublicKey = {
     fingerprint: string // sha 256 fingerprint of members public key
-    publicKey: string // PEM encoded RSA public key
+    publicKey: ArrayBuffer
 }
 
 export type FileKeyMap = {

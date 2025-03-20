@@ -1,6 +1,6 @@
 import { BlobReader, BlobWriter, Entry, TextWriter, ZipReader } from '@zip.js/zip.js'
 import type { ResultsFile, ResultsManifest } from './types'
-import { privateKeyFromString } from '../util'
+import { privateKeyFromBuffer } from '../util'
 
 export class ResultsReader {
     manifest: ResultsManifest = {
@@ -8,14 +8,19 @@ export class ResultsReader {
     }
 
     private zipReader: ZipReader<Blob>
-    fingerprint: string
-    privateKey: CryptoKey
+    private fingerprint: string
+    private privateKey: CryptoKey
 
-    async decryptZip(zipBlob: Blob, privateKey: string, fingerprint: string): Promise<string[]> {
+    constructor(zipBlob: Blob) {
+        this.zipReader = new ZipReader(new BlobReader(zipBlob))
+    }
+
+    async decryptZip(privateKey: ArrayBuffer, fingerprint: string): Promise<string[]> {
         this.fingerprint = fingerprint
-        await this.decode(zipBlob)
-        await this.parseKeys(privateKey)
-        const generator = await this.entries()
+        await this.decode()
+        this.privateKey = await privateKeyFromBuffer(privateKey)
+
+        const generator = this.entries()
         const entries = []
         for await (const entry of generator) {
             const decodedContents = new TextDecoder().decode(entry.contents)
@@ -24,9 +29,7 @@ export class ResultsReader {
         return entries
     }
 
-    private async decode(zipBlob: Blob) {
-        this.zipReader = new ZipReader(new BlobReader(zipBlob))
-
+    private async decode() {
         const entries = await this.zipReader.getEntries()
         for (const entry of entries) {
             if (entry.getData && entry.filename == 'manifest.json') {
@@ -90,9 +93,5 @@ export class ResultsReader {
             aesKey,
             arrayBuffer,
         )
-    }
-
-    async parseKeys(privateKeyString: string) {
-        this.privateKey = await privateKeyFromString(privateKeyString)
     }
 }
