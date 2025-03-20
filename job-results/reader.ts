@@ -9,12 +9,12 @@ export class ResultsReader {
 
     private zipReader: ZipReader<Blob>
     private fingerprint: string
-    private privateKey: Promise<CryptoKey>
+    private privateKey: ArrayBuffer
 
     constructor(zipBlob: Blob, privateKey: ArrayBuffer, fingerprint: string) {
         this.zipReader = new ZipReader(new BlobReader(zipBlob))
         this.fingerprint = fingerprint
-        this.privateKey = privateKeyFromBuffer(privateKey)
+        this.privateKey = privateKey
     }
 
     async decryptZip(): Promise<string[]> {
@@ -76,7 +76,7 @@ export class ResultsReader {
             {
                 name: 'RSA-OAEP',
             },
-            await this.privateKey,
+            await privateKeyFromBuffer(this.privateKey),
             encryptedKey,
         )
 
