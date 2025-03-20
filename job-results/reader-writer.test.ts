@@ -24,11 +24,10 @@ describe('Encryption Library Tests', async () => {
 
         const zip = await writer.generate()
 
-        const reader = new ResultsReader(zip)
-
         const privateKey = pemToArrayBuffer(readPrivateKey())
+        const reader = new ResultsReader(zip, privateKey, fingerprint)
 
-        const entries = await reader.decryptZip(privateKey, fingerprint)
+        const entries = await reader.decryptZip()
 
         expect(Object.keys(reader.manifest.files)).toHaveLength(1)
         expect(entries).toHaveLength(1)
