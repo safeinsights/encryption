@@ -41,7 +41,7 @@ export async function generateKeyPair(): Promise<{
 }
 
 export type SerializedBuffer = {
-    type: string
+    type: 'Buffer'
     data: number[]
 }
 
@@ -81,6 +81,12 @@ export function pemToArrayBuffer(pem: string) {
     } else {
         return Buffer.from(b64, 'base64').buffer
     }
+}
+
+// Helper for testing: Convert an PEM key into the format that keys are tranfered as in API requests:
+// { type: 'Buffer', data: [1,2,3,...] }
+export function pemToJSONBuffer(pem: string): SerializedBuffer {
+    return JSON.parse(JSON.stringify(Buffer.from(pemToArrayBuffer(pem))))
 }
 
 // Helper: Convert an ArrayBuffer to a hex string.

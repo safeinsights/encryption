@@ -6,6 +6,7 @@ import {
     serializedBufferToPublicKey,
     pemToArrayBuffer,
     SerializedBuffer,
+    pemToJSONBuffer,
 } from './keypair'
 import { readPublicKey } from '../testing'
 
@@ -55,6 +56,14 @@ describe('Encryption Library KeyPair Tests', () => {
         const fingerprint2 = await fingerprintKeyData(publicKeyData2)
 
         expect(fingerprint1).not.toEqual(fingerprint2)
+    })
+
+    it('can generate a data structure from key for testing', async () => {
+        const data = pemToJSONBuffer(readPublicKey())
+        expect(data).toMatchObject({
+            type: 'Buffer',
+            data: expect.any(Array),
+        })
     })
 
     it('can parse a public key from binary data', async () => {
