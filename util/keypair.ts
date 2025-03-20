@@ -26,7 +26,7 @@ export async function generateKeyPair(): Promise<{
     const exportedPrivateKey = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
     const privateKeyString = btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey)))
 
-    const fingerprint = await fingerprintFromPublicKey(publicKeyString)
+    const fingerprint = await fingerprintKeyData(exportedPublicKey)
 
     // TODO Figure out what we want to export
     return {
@@ -38,6 +38,31 @@ export async function generateKeyPair(): Promise<{
         privateKeyString,
         fingerprint,
     }
+}
+
+export type SerializedBuffer = {
+    type: 'Buffer'
+    data: number[]
+}
+
+export function serializedBufferToArrayBuffer(input: SerializedBuffer): ArrayBuffer {
+    return new Uint8Array(input.data).buffer
+}
+
+export async function serializedBufferToPublicKey(buffer: SerializedBuffer) {
+    const publicKeyBuffer = serializedBufferToArrayBuffer(buffer)
+
+    const publicKeyImported = await crypto.subtle.importKey(
+        'spki',
+        publicKeyBuffer,
+        {
+            name: 'RSA-OAEP',
+            hash: 'SHA-256',
+        },
+        true,
+        ['encrypt'],
+    )
+    return publicKeyImported
 }
 
 // Helper: Convert a PEM encoded string to an ArrayBuffer.
@@ -58,6 +83,12 @@ export function pemToArrayBuffer(pem: string) {
     }
 }
 
+// Helper for testing: Convert an PEM key into the format that keys are tranfered as in API requests:
+// { type: 'Buffer', data: [1,2,3,...] }
+export function pemToJSONBuffer(pem: string): SerializedBuffer {
+    return JSON.parse(JSON.stringify(Buffer.from(pemToArrayBuffer(pem))))
+}
+
 // Helper: Convert an ArrayBuffer to a hex string.
 export function arrayBufferToHex(buffer: ArrayBuffer) {
     const byteArray = new Uint8Array(buffer)
@@ -66,34 +97,15 @@ export function arrayBufferToHex(buffer: ArrayBuffer) {
         .join('')
 }
 
-export async function fingerprintFromPublicKey(publicKey: string): Promise<string> {
-    const publicKeyBuffer = pemToArrayBuffer(publicKey)
-
-    // Import publicKey
-    const publicKeyImported = await crypto.subtle.importKey(
-        'spki',
-        publicKeyBuffer,
-        {
-            name: 'RSA-OAEP',
-            hash: 'SHA-256',
-        },
-        true,
-        ['encrypt'],
-    )
-
-    // Export the public key as SPKI (DER encoded)
-    const spki = await crypto.subtle.exportKey('spki', publicKeyImported)
-
+export async function fingerprintKeyData(publicKeyBuffer: ArrayBuffer): Promise<string> {
     // Compute the SHA‑256 digest (fingerprint) of the SPKI data
-    const fingerprintBuffer = await crypto.subtle.digest('SHA-256', spki)
+    const fingerprintBuffer = await crypto.subtle.digest('SHA-256', publicKeyBuffer)
 
     // Convert the ArrayBuffer fingerprint into a hexadecimal string (colon-delimited)
     return arrayBufferToHex(fingerprintBuffer)
 }
 
-export async function privateKeyFromString(privateKey: string): Promise<CryptoKey> {
-    const privateKeyBuffer = pemToArrayBuffer(privateKey)
-
+export async function privateKeyFromBuffer(privateKeyBuffer: ArrayBuffer): Promise<CryptoKey> {
     // Import the RSA private key.
     return await crypto.subtle.importKey(
         'pkcs8',
@@ -105,44 +117,4 @@ export async function privateKeyFromString(privateKey: string): Promise<CryptoKe
         true, // Extractable - intended to be used with fingerprintFromPrivateKey
         ['decrypt'],
     )
-}
-
-// TODO Determine whether or not we can just remove this function entirely
-export async function fingerprintFromPrivateKey(privateKey: CryptoKey | string): Promise<string> {
-    if (typeof privateKey === 'string') {
-        privateKey = await privateKeyFromString(privateKey)
-    }
-
-    // Export the private key as JWK to extract the public key parameters (n and e)
-    const jwk = await crypto.subtle.exportKey('jwk', privateKey)
-
-    // Create a JWK object for the public key using modulus (n) and exponent (e)
-    const publicJwk = {
-        kty: jwk.kty,
-        n: jwk.n,
-        e: jwk.e,
-        alg: jwk.alg,
-        ext: true,
-    }
-
-    // Import the public key
-    const publicKey = await crypto.subtle.importKey(
-        'jwk',
-        publicJwk,
-        {
-            name: 'RSA-OAEP', // ensure this matches the private key's algorithm
-            hash: 'SHA-256',
-        },
-        true,
-        ['encrypt'],
-    )
-
-    // Export the public key as SPKI (DER encoded)
-    const spki = await crypto.subtle.exportKey('spki', publicKey)
-
-    // Compute the SHA‑256 digest (fingerprint) of the SPKI data
-    const fingerprintBuffer = await crypto.subtle.digest('SHA-256', spki)
-
-    // Convert the ArrayBuffer fingerprint into a hexadecimal string (colon-delimited)
-    return arrayBufferToHex(fingerprintBuffer)
 }

@@ -50,10 +50,9 @@ export class ResultsWriter {
 
     private async encryptAesKeyWithPublicKey(key: PublicKey, aesKey: ArrayBuffer): Promise<string> {
         // Decode the public key
-        const publicKeyBuffer = Buffer.from(key.publicKey, 'base64')
         const publicKey = await crypto.subtle.importKey(
             'spki',
-            publicKeyBuffer,
+            key.publicKey,
             {
                 name: 'RSA-OAEP',
                 hash: 'SHA-256',
