@@ -8,7 +8,7 @@ import {
     SerializedBuffer,
     pemToJSONBuffer,
     privateKeyFromBuffer,
-    fingerPrintPublicKeyFromPrivateKey,
+    fingerprintPublicKeyFromPrivateKey,
 } from './keypair'
 import { readPublicKey, readPrivateKey } from '../testing'
 
@@ -82,11 +82,9 @@ describe('Encryption Library KeyPair Tests', () => {
     })
 
     it('can fingerprint a public key from a private key', async () => {
-        const pubKeyStr = readPublicKey()
-        const origFingerprint = await fingerprintPublicKeyFromPrivateKey(pemToArrayBuffer(pubKeyStr))
-
+        const origFingerprint = await fingerprintKeyData(pemToArrayBuffer(readPublicKey()))
         const privKey = await privateKeyFromBuffer(pemToArrayBuffer(readPrivateKey()))
-        const privKeyPrint = await fingerPrintPublicKeyFromPrivateKey(privKey)
+        const privKeyPrint = await fingerprintPublicKeyFromPrivateKey(privKey)
 
         expect(privKeyPrint).toEqual(origFingerprint)
     })
