@@ -7,8 +7,10 @@ import {
     pemToArrayBuffer,
     SerializedBuffer,
     pemToJSONBuffer,
+    privateKeyFromBuffer,
+    fingerPrintPublicKeyFromPrivateKey,
 } from './keypair'
-import { readPublicKey } from '../testing'
+import { readPublicKey, readPrivateKey } from '../testing'
 
 describe('Encryption Library KeyPair Tests', () => {
     it('should generate a public/private key pair and export keys', async () => {
@@ -77,5 +79,15 @@ describe('Encryption Library KeyPair Tests', () => {
         const afterConversionFingerprint = await crypto.subtle.digest('SHA-256', exportedKey)
 
         expect(origFingerprint).toEqual(arrayBufferToHex(afterConversionFingerprint))
+    })
+
+    it('can fingerprint a public key from a private key', async () => {
+        const pubKeyStr = readPublicKey()
+        const origFingerprint = await fingerprintKeyData(pemToArrayBuffer(pubKeyStr))
+
+        const privKey = await privateKeyFromBuffer(pemToArrayBuffer(readPrivateKey()))
+        const privKeyPrint = await fingerPrintPublicKeyFromPrivateKey(privKey)
+
+        expect(privKeyPrint).toEqual(origFingerprint)
     })
 })

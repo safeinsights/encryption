@@ -118,3 +118,30 @@ export async function privateKeyFromBuffer(privateKeyBuffer: ArrayBuffer): Promi
         ['decrypt'],
     )
 }
+
+
+export async function fingerPrintPublicKeyFromPrivateKey(privateKey: CryptoKey) {
+    // Export the private key as a JWK (JSON Web Key)
+    const jwk = await crypto.subtle.exportKey('jwk', privateKey)
+
+    // Create a public JWK by keeping only the public parts: the modulus (n) and exponent (e)
+    const publicJwk = {
+        kty: jwk.kty, // key type (should be "RSA")
+        n: jwk.n, // modulus
+        e: jwk.e, // public exponent
+        alg: jwk.alg, // algorithm (e.g., "RSA-OAEP-256")
+        ext: jwk.ext, // extractable flag
+    }
+
+    // Re-import the public JWK as a public CryptoKey
+    const publicKey = await crypto.subtle.importKey(
+        'jwk',
+        publicJwk,
+        { name: 'RSA-OAEP', hash: 'SHA-256' }, // Use your specific algorithm here
+        true,
+        ['encrypt'], // Set usages appropriate for your public key (e.g., "encrypt")
+    )
+
+    const pk = await crypto.subtle.exportKey('spki', publicKey)
+    return await fingerprintKeyData(pk)
+}
