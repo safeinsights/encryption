@@ -119,7 +119,6 @@ export async function privateKeyFromBuffer(privateKeyBuffer: ArrayBuffer): Promi
     )
 }
 
-
 export async function fingerPrintPublicKeyFromPrivateKey(privateKey: CryptoKey) {
     // Export the private key as a JWK (JSON Web Key)
     const jwk = await crypto.subtle.exportKey('jwk', privateKey)
