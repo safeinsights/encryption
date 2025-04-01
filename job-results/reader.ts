@@ -1,5 +1,5 @@
 import { BlobReader, BlobWriter, Entry, TextWriter, ZipReader } from '@zip.js/zip.js'
-import type { ResultsFile, ResultsManifest } from './types'
+import type { ResultsFile, ResultsManifest, FileEntry } from './types'
 import { privateKeyFromBuffer } from '../util'
 
 export class ResultsReader {
@@ -17,19 +17,21 @@ export class ResultsReader {
         this.privateKey = privateKey
     }
 
-    async decryptZip(): Promise<string[]> {
+    async extractFiles() {
         await this.decode()
 
         const generator = this.entries()
-        const entries = []
+        const entries: FileEntry[] = []
         for await (const entry of generator) {
-            const decodedContents = new TextDecoder().decode(entry.contents)
-            entries.push(decodedContents)
+            entries.push({
+                path: entry.path,
+                contents: entry.contents,
+            })
         }
         return entries
     }
 
-    private async decode() {
+    async decode() {
         const entries = await this.zipReader.getEntries()
         for (const entry of entries) {
             if (entry.getData && entry.filename == 'manifest.json') {
@@ -42,7 +44,7 @@ export class ResultsReader {
         }
     }
 
-    private async *entries(): AsyncGenerator<ResultsFile & { contents: ArrayBuffer }, void, void> {
+    async *entries(): AsyncGenerator<ResultsFile & { contents: ArrayBuffer }, void, void> {
         const entries = await this.zipReader.getEntries()
         for (const entry of entries) {
             const file = this.manifest.files[entry.filename]

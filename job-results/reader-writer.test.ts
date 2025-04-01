@@ -27,10 +27,12 @@ describe('Encryption Library Tests', async () => {
         const privateKey = pemToArrayBuffer(readPrivateKey())
         const reader = new ResultsReader(zip, privateKey, fingerprint)
 
-        const entries = await reader.decryptZip()
+        const entries = await reader.extractFiles()
 
         expect(Object.keys(reader.manifest.files)).toHaveLength(1)
         expect(entries).toHaveLength(1)
-        expect(entries[0]).toEqual('hello world!')
+        expect(entries[0].path).toEqual('test.data')
+
+        expect(new TextDecoder().decode(entries[0].contents)).toEqual('hello world!')
     })
 })

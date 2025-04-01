@@ -23,3 +23,8 @@ export type ResultsFile = {
 export type ResultsManifest = {
     files: Record<ResultsFileKey, ResultsFile> // key is the path of the file
 }
+
+export type FileEntry = {
+    path: string
+    contents: ArrayBuffer
+}
