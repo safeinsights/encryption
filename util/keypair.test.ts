@@ -83,7 +83,7 @@ describe('Encryption Library KeyPair Tests', () => {
 
     it('can fingerprint a public key from a private key', async () => {
         const pubKeyStr = readPublicKey()
-        const origFingerprint = await fingerprintKeyData(pemToArrayBuffer(pubKeyStr))
+        const origFingerprint = await fingerprintPublicKeyFromPrivateKey(pemToArrayBuffer(pubKeyStr))
 
         const privKey = await privateKeyFromBuffer(pemToArrayBuffer(readPrivateKey()))
         const privKeyPrint = await fingerPrintPublicKeyFromPrivateKey(privKey)
