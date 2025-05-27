@@ -1,6 +1,7 @@
 import { BlobReader, BlobWriter, Entry, TextWriter, ZipReader } from '@zip.js/zip.js'
 import type { ResultsFile, ResultsManifest, FileEntry } from './types'
 import { privateKeyFromBuffer } from '../util'
+import logger from '../lib/logger'
 
 export class ResultsReader {
     manifest: ResultsManifest = {
@@ -18,6 +19,8 @@ export class ResultsReader {
     }
 
     async extractFiles() {
+        logger.info(`Extracting files`)
+
         await this.decode()
 
         const generator = this.entries()
@@ -34,6 +37,8 @@ export class ResultsReader {
     async decode() {
         const entries = await this.zipReader.getEntries()
         for (const entry of entries) {
+            logger.info(`Decoding file: ${entry.filename}`)
+
             if (entry.getData && entry.filename == 'manifest.json') {
                 const manifestText = await entry.getData(new TextWriter())
                 this.manifest = JSON.parse(manifestText) as ResultsManifest
@@ -60,6 +65,8 @@ export class ResultsReader {
             throw new Error('Entry does not have data')
         }
 
+        logger.info(`Reading file ${entry.filename}`)
+
         const encryptedData = await entry.getData(new BlobWriter())
 
         const encryptionKey = fileEntry.keys[this.fingerprint]
@@ -72,6 +79,8 @@ export class ResultsReader {
     }
 
     private async decryptKeyWithPrivateKey(encryptedKeyBase64: string): Promise<CryptoKey> {
+        logger.info(`Decrypting key`)
+
         const encryptedKey = Buffer.from(encryptedKeyBase64, 'base64')
 
         const rawKey = await crypto.subtle.decrypt(
@@ -86,6 +95,8 @@ export class ResultsReader {
     }
 
     private async decryptData(encryptedData: Blob, aesKey: CryptoKey, iv: Uint8Array): Promise<ArrayBuffer> {
+        logger.info(`Decrypting data`)
+
         const arrayBuffer = await encryptedData.arrayBuffer()
         return crypto.subtle.decrypt(
             {

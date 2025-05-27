@@ -1,6 +1,7 @@
 import { ZipWriter, BlobWriter, TextReader, BlobReader } from '@zip.js/zip.js'
 
 import type { ResultsManifest, PublicKey, FileKeyMap } from './types'
+import logger from '../lib/logger'
 
 export class ResultsWriter {
     zipBlobWriter = new BlobWriter('application/zip')
@@ -12,6 +13,8 @@ export class ResultsWriter {
     constructor(public publicKeys: PublicKey[]) {}
 
     async addFile(fileName: string, content: ArrayBuffer) {
+        logger.info(`Adding file ${fileName} to manifest`)
+
         // Generate AES key
         const aesKey = await crypto.subtle.generateKey({ name: 'AES-CBC', length: 256 }, true, ['encrypt'])
 
@@ -42,6 +45,8 @@ export class ResultsWriter {
     }
 
     async generate(): Promise<Blob> {
+        logger.info(`Adding manifest.json to zip`)
+
         await this.zip.add('manifest.json', new TextReader(JSON.stringify(this.manifest)))
         await this.zip.close()
 
@@ -49,6 +54,8 @@ export class ResultsWriter {
     }
 
     private async encryptAesKeyWithPublicKey(key: PublicKey, aesKey: ArrayBuffer): Promise<string> {
+        logger.info(`Encrypting AES key`)
+
         // Decode the public key
         const publicKey = await crypto.subtle.importKey(
             'spki',
