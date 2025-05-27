@@ -42,6 +42,7 @@ export class ResultsWriter {
             keys,
             iv: Buffer.from(iv).toString('base64'),
         }
+        logger.info(`Finished adding file ${fileName} to manifest`)
     }
 
     async generate(): Promise<Blob> {
@@ -50,6 +51,7 @@ export class ResultsWriter {
         await this.zip.add('manifest.json', new TextReader(JSON.stringify(this.manifest)))
         await this.zip.close()
 
+        logger.info(`Finished adding manifest.json to zip`)
         return this.zipBlobWriter.getData()
     }
 
@@ -77,6 +79,7 @@ export class ResultsWriter {
             aesKey,
         )
 
+        logger.info(`Finished encrypting AES key`)
         return Buffer.from(encryptedKey).toString('base64')
     }
 }

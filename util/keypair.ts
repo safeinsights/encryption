@@ -32,6 +32,8 @@ export async function generateKeyPair(): Promise<{
 
     const fingerprint = await fingerprintKeyData(exportedPublicKey)
 
+    logger.info(`Finished generating keypair`)
+
     // TODO Figure out what we want to export
     return {
         publicKey: keyPair.publicKey,
@@ -111,7 +113,7 @@ export async function fingerprintKeyData(publicKeyBuffer: ArrayBuffer): Promise<
 export async function privateKeyFromBuffer(privateKeyBuffer: ArrayBuffer): Promise<CryptoKey> {
     logger.info(`Creating private key from buffer`)
     // Import the RSA private key.
-    return await crypto.subtle.importKey(
+    const key = await crypto.subtle.importKey(
         'pkcs8',
         privateKeyBuffer,
         {
@@ -121,6 +123,10 @@ export async function privateKeyFromBuffer(privateKeyBuffer: ArrayBuffer): Promi
         true, // Extractable - intended to be used with fingerprintFromPrivateKey
         ['decrypt'],
     )
+
+    logger.info(`Finished creating private key from buffer`)
+
+    return key
 }
 
 export async function fingerprintPublicKeyFromPrivateKey(privateKey: CryptoKey) {
@@ -147,5 +153,6 @@ export async function fingerprintPublicKeyFromPrivateKey(privateKey: CryptoKey) 
     )
 
     const pk = await crypto.subtle.exportKey('spki', publicKey)
+    logger.info(`Finished creating fingerprint from private key`)
     return await fingerprintKeyData(pk)
 }
