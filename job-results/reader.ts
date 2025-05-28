@@ -1,6 +1,7 @@
 import { BlobReader, BlobWriter, Entry, TextWriter, ZipReader } from '@zip.js/zip.js'
 import type { ResultsFile, ResultsManifest, FileEntry } from './types'
 import { privateKeyFromBuffer } from '../util'
+import logger from '../lib/logger'
 
 export class ResultsReader {
     manifest: ResultsManifest = {
@@ -18,6 +19,8 @@ export class ResultsReader {
     }
 
     async extractFiles() {
+        logger.info(`Extracting files`)
+
         await this.decode()
 
         const generator = this.entries()
@@ -28,10 +31,13 @@ export class ResultsReader {
                 contents: entry.contents,
             })
         }
+        logger.info(`Finished extracting files`)
         return entries
     }
 
     async decode() {
+        logger.info(`Decoding entries`)
+
         const entries = await this.zipReader.getEntries()
         for (const entry of entries) {
             if (entry.getData && entry.filename == 'manifest.json') {
@@ -39,9 +45,12 @@ export class ResultsReader {
                 this.manifest = JSON.parse(manifestText) as ResultsManifest
             }
         }
+
         if (!this.manifest) {
             throw new Error('Manifest not found in zip archive.')
         }
+
+        logger.info(`Finished decoding entries`)
     }
 
     async *entries(): AsyncGenerator<ResultsFile & { contents: ArrayBuffer }, void, void> {
@@ -60,6 +69,8 @@ export class ResultsReader {
             throw new Error('Entry does not have data')
         }
 
+        logger.info(`Reading file ${entry.filename}`)
+
         const encryptedData = await entry.getData(new BlobWriter())
 
         const encryptionKey = fileEntry.keys[this.fingerprint]
@@ -68,10 +79,14 @@ export class ResultsReader {
         const aesKey = await this.decryptKeyWithPrivateKey(encryptionKey.crypt)
 
         const iv = Uint8Array.from(Buffer.from(fileEntry.iv, 'base64'))
+
+        logger.info(`Finished reading file ${entry.filename}`)
         return this.decryptData(encryptedData, aesKey, iv)
     }
 
     private async decryptKeyWithPrivateKey(encryptedKeyBase64: string): Promise<CryptoKey> {
+        logger.info(`Decrypting key`)
+
         const encryptedKey = Buffer.from(encryptedKeyBase64, 'base64')
 
         const rawKey = await crypto.subtle.decrypt(
@@ -82,12 +97,18 @@ export class ResultsReader {
             encryptedKey,
         )
 
-        return await crypto.subtle.importKey('raw', rawKey, { name: 'AES-CBC' }, false, ['decrypt'])
+        const key = await crypto.subtle.importKey('raw', rawKey, { name: 'AES-CBC' }, false, ['decrypt'])
+
+        logger.info(`Finished decrypting key`)
+
+        return key
     }
 
     private async decryptData(encryptedData: Blob, aesKey: CryptoKey, iv: Uint8Array): Promise<ArrayBuffer> {
+        logger.info(`Decrypting data`)
+
         const arrayBuffer = await encryptedData.arrayBuffer()
-        return crypto.subtle.decrypt(
+        const results = crypto.subtle.decrypt(
             {
                 name: 'AES-CBC',
                 iv,
@@ -95,5 +116,9 @@ export class ResultsReader {
             aesKey,
             arrayBuffer,
         )
+
+        logger.info(`Finished decrypting data`)
+
+        return results
     }
 }

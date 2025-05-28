@@ -1,3 +1,5 @@
+import logger from '../lib/logger'
+
 export async function generateKeyPair(): Promise<{
     publicKey: CryptoKey
     privateKey: CryptoKey
@@ -7,6 +9,8 @@ export async function generateKeyPair(): Promise<{
     privateKeyString: string
     fingerprint: string
 }> {
+    logger.info(`Generating keypair`)
+
     const keyPair = await crypto.subtle.generateKey(
         {
             name: 'RSA-OAEP',
@@ -27,6 +31,8 @@ export async function generateKeyPair(): Promise<{
     const privateKeyString = btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey)))
 
     const fingerprint = await fingerprintKeyData(exportedPublicKey)
+
+    logger.info(`Finished generating keypair`)
 
     // TODO Figure out what we want to export
     return {
@@ -52,7 +58,7 @@ export function serializedBufferToArrayBuffer(input: SerializedBuffer): ArrayBuf
 export async function serializedBufferToPublicKey(buffer: SerializedBuffer) {
     const publicKeyBuffer = serializedBufferToArrayBuffer(buffer)
 
-    const publicKeyImported = await crypto.subtle.importKey(
+    return await crypto.subtle.importKey(
         'spki',
         publicKeyBuffer,
         {
@@ -62,7 +68,6 @@ export async function serializedBufferToPublicKey(buffer: SerializedBuffer) {
         true,
         ['encrypt'],
     )
-    return publicKeyImported
 }
 
 // Helper: Convert a PEM encoded string to an ArrayBuffer.
@@ -106,8 +111,9 @@ export async function fingerprintKeyData(publicKeyBuffer: ArrayBuffer): Promise<
 }
 
 export async function privateKeyFromBuffer(privateKeyBuffer: ArrayBuffer): Promise<CryptoKey> {
+    logger.info(`Creating private key from buffer`)
     // Import the RSA private key.
-    return await crypto.subtle.importKey(
+    const key = await crypto.subtle.importKey(
         'pkcs8',
         privateKeyBuffer,
         {
@@ -117,9 +123,14 @@ export async function privateKeyFromBuffer(privateKeyBuffer: ArrayBuffer): Promi
         true, // Extractable - intended to be used with fingerprintFromPrivateKey
         ['decrypt'],
     )
+
+    logger.info(`Finished creating private key from buffer`)
+
+    return key
 }
 
 export async function fingerprintPublicKeyFromPrivateKey(privateKey: CryptoKey) {
+    logger.info(`Creating fingerprint from private key`)
     // Export the private key as a JWK (JSON Web Key)
     const jwk = await crypto.subtle.exportKey('jwk', privateKey)
 
@@ -142,5 +153,6 @@ export async function fingerprintPublicKeyFromPrivateKey(privateKey: CryptoKey) 
     )
 
     const pk = await crypto.subtle.exportKey('spki', publicKey)
+    logger.info(`Finished creating fingerprint from private key`)
     return await fingerprintKeyData(pk)
 }
