@@ -15,7 +15,11 @@ describe('Encryption Library Tests', async () => {
             },
         ])
 
-        await writer.addFile('test.data', Buffer.from('hello world!', 'utf-8'))
+        const content = Buffer.from('hello world!', 'utf-8')
+        await writer.addFile(
+            'test.data',
+            content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength),
+        )
 
         expect(writer.manifest.files['test.data']).toMatchObject({
             path: 'test.data',

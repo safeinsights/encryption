@@ -78,7 +78,7 @@ export class ResultsReader {
 
         const aesKey = await this.decryptKeyWithPrivateKey(encryptionKey.crypt)
 
-        const iv = Uint8Array.from(Buffer.from(fileEntry.iv, 'base64'))
+        const iv = Buffer.from(fileEntry.iv, 'base64')
 
         logger.info(`Finished reading file ${entry.filename}`)
         return this.decryptData(encryptedData, aesKey, iv)
@@ -104,7 +104,7 @@ export class ResultsReader {
         return key
     }
 
-    private async decryptData(encryptedData: Blob, aesKey: CryptoKey, iv: Uint8Array): Promise<ArrayBuffer> {
+    private async decryptData(encryptedData: Blob, aesKey: CryptoKey, iv: BufferSource): Promise<ArrayBuffer> {
         logger.info(`Decrypting data`)
 
         const arrayBuffer = await encryptedData.arrayBuffer()
