@@ -1,4 +1,4 @@
-import { BlobReader, BlobWriter, Entry, TextWriter, ZipReader } from '@zip.js/zip.js'
+import { BlobReader, BlobWriter, FileEntry as ZipFileEntry, TextWriter, ZipReader } from '@zip.js/zip.js'
 import type { ResultsFile, ResultsManifest, FileEntry } from './types'
 import { privateKeyFromBuffer } from '../util'
 import logger from '../lib/logger'
@@ -40,7 +40,7 @@ export class ResultsReader {
 
         const entries = await this.zipReader.getEntries()
         for (const entry of entries) {
-            if (entry.getData && entry.filename == 'manifest.json') {
+            if (!entry.directory && entry.filename == 'manifest.json') {
                 const manifestText = await entry.getData(new TextWriter())
                 this.manifest = JSON.parse(manifestText) as ResultsManifest
             }
@@ -57,18 +57,14 @@ export class ResultsReader {
         const entries = await this.zipReader.getEntries()
         for (const entry of entries) {
             const file = this.manifest.files[entry.filename]
-            if (entry.getData && file) {
+            if (!entry.directory && file) {
                 const contents = await this.readFile(file, entry)
                 yield { ...file, contents }
             }
         }
     }
 
-    private async readFile(fileEntry: ResultsFile, entry: Entry): Promise<ArrayBuffer> {
-        if (!entry.getData) {
-            throw new Error('Entry does not have data')
-        }
-
+    private async readFile(fileEntry: ResultsFile, entry: ZipFileEntry): Promise<ArrayBuffer> {
         logger.info(`Reading file ${entry.filename}`)
 
         const encryptedData = await entry.getData(new BlobWriter())
