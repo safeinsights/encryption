@@ -12,5 +12,5 @@ scan:
         - vuln
         - secret
 pkg:
-  # Same as '--include-dev-deps'
-  include-dev-deps: true
+    # Same as '--include-dev-deps'
+    include-dev-deps: true
