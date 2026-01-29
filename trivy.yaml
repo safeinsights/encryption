@@ -1,0 +1,9 @@
+format: json
+exit-code: 1
+debug: false
+scan:
+    scanners:
+        - vuln
+        - secret
+        - misconfig
+
