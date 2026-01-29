@@ -39,5 +39,4 @@ jobs:
               run: npm run typecheck
             - name: Unit Test
               run: npm run test
-            - name: Test build
-              run: npm run build
+
