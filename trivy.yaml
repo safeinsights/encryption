@@ -1,6 +1,12 @@
 format: json
 exit-code: 1
 debug: false
+severity:
+    - CRITICAL
+    - HIGH
+    - MEDIUM
+    - LOW
+    - UNKNOWN
 scan:
     scanners:
         - vuln
