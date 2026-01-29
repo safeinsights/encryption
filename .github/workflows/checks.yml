@@ -35,3 +35,9 @@ jobs:
               timeout-minutes: 5
               env:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            - name: Typecheck
+              run: npm run typecheck
+            - name: Unit Test
+              run: npm run test
+            - name: Test build
+              run: npm run build
