@@ -6,4 +6,3 @@ scan:
         - vuln
         - secret
         - misconfig
-
