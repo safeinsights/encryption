@@ -11,3 +11,4 @@ scan:
     scanners:
         - vuln
         - secret
+    include-dev-deps: true
