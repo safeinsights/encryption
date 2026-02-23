@@ -9,9 +9,9 @@
         "typecheck": "tsc --noEmit",
         "lint": "eslint && prettier --check .",
         "lint:fix": "eslint --fix && prettier --write .",
-        "pre:push": "run-s lint:fix typecheck",
-        "checks": "run-p -c typecheck lint",
-        "ci": "run-p checks test"
+        "pre:push": "npm run lint:fix && npm run typecheck",
+        "checks": "npm run typecheck && npm run lint",
+        "ci": "npm run checks && npm run test"
     },
     "repository": {
         "type": "git",
@@ -24,11 +24,11 @@
     },
     "homepage": "https://github.com/safeinsights/encryption#readme",
     "devDependencies": {
+        "@eslint/js": "*",
         "@types/debug": "^4.1.12",
         "@types/node": "^24.2.1",
         "eslint": "*",
         "happy-dom": "*",
-        "npm-run-all": "*",
         "prettier": "*",
         "tsx": "^4.20.4",
         "typescript-eslint": "^8.49.0",
