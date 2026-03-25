@@ -35,7 +35,7 @@
         "vitest": "*"
     },
     "dependencies": {
-        "@zip.js/zip.js": "^2.7.72",
+        "@zip.js/zip.js": "^2.8.23",
         "debug": "^4.4.1"
     }
 }
