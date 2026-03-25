@@ -28,3 +28,8 @@ export type FileEntry = {
     path: string
     contents: ArrayBuffer
 }
+
+export type FileInfo = {
+    path: string
+    bytes: number // original (pre-encryption) file size
+}
