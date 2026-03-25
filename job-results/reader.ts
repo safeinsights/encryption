@@ -1,6 +1,6 @@
 import { BlobReader, BlobWriter, TextWriter, ZipReader } from '@zip.js/zip.js'
 import type { FileEntry as ZipFileEntry } from '@zip.js/zip.js'
-import type { ResultsFile, ResultsManifest, FileEntry } from './types'
+import type { ResultsFile, ResultsManifest, FileEntry, FileInfo } from './types'
 import { privateKeyFromBuffer } from '../util'
 import logger from '../lib/logger'
 
@@ -12,6 +12,7 @@ export class ResultsReader {
     private zipReader: ZipReader<Blob>
     private fingerprint: string
     private privateKey: ArrayBuffer
+    private decoded = false
 
     constructor(zipBlob: Blob, privateKey: ArrayBuffer, fingerprint: string) {
         this.zipReader = new ZipReader(new BlobReader(zipBlob))
@@ -37,6 +38,8 @@ export class ResultsReader {
     }
 
     async decode() {
+        if (this.decoded) return
+
         logger.info(`Decoding entries`)
 
         const entries = await this.zipReader.getEntries()
@@ -51,7 +54,31 @@ export class ResultsReader {
             throw new Error('Manifest not found in zip archive.')
         }
 
+        this.decoded = true
         logger.info(`Finished decoding entries`)
+    }
+
+    async listFiles(): Promise<FileInfo[]> {
+        await this.decode()
+        return Object.values(this.manifest.files).map(({ path, bytes }) => ({ path, bytes }))
+    }
+
+    async extractFile(filePath: string): Promise<FileEntry> {
+        await this.decode()
+
+        const file = this.manifest.files[filePath]
+        if (!file) {
+            throw new Error(`File not found in manifest: ${filePath}`)
+        }
+
+        const entries = await this.zipReader.getEntries()
+        const entry = entries.find((e) => !e.directory && e.filename === filePath)
+        if (!entry || entry.directory) {
+            throw new Error(`File not found in zip archive: ${filePath}`)
+        }
+
+        const contents = await this.readFile(file, entry)
+        return { path: filePath, contents }
     }
 
     async *entries(): AsyncGenerator<ResultsFile & { contents: ArrayBuffer }, void, void> {
