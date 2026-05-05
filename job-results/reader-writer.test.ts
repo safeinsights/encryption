@@ -44,6 +44,54 @@ describe('Encryption Library Tests', async () => {
 
         expect(new TextDecoder().decode(entries[0].contents)).toEqual('hello world!')
     })
+
+    it('throws if CryptoKey was imported without unwrapKey usage', async () => {
+        const publicKey = pemToArrayBuffer(readPublicKey())
+        const fingerprint = await fingerprintKeyData(publicKey)
+        const writer = new ResultsWriter([{ publicKey, fingerprint }])
+        await writer.addFile('test.data', toArrayBuffer('hello world!'))
+        const zip = await writer.generate()
+
+        const wrongKey = await crypto.subtle.importKey(
+            'pkcs8',
+            pemToArrayBuffer(readPrivateKey()),
+            { name: 'RSA-OAEP', hash: 'SHA-256' },
+            false,
+            ['decrypt'],
+        )
+
+        expect(() => new ResultsReader(zip, wrongKey, fingerprint)).toThrow(/unwrapKey/)
+    })
+
+    it('can read using a non-extractable CryptoKey', async () => {
+        const publicKey = pemToArrayBuffer(readPublicKey())
+        const fingerprint = await fingerprintKeyData(publicKey)
+        const writer = new ResultsWriter([{ publicKey, fingerprint }])
+
+        const content = Buffer.from('hello world!', 'utf-8')
+        await writer.addFile(
+            'test.data',
+            content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength),
+        )
+
+        const zip = await writer.generate()
+
+        const privateKeyBuf = pemToArrayBuffer(readPrivateKey())
+        const privateCryptoKey = await crypto.subtle.importKey(
+            'pkcs8',
+            privateKeyBuf,
+            { name: 'RSA-OAEP', hash: 'SHA-256' },
+            false,
+            ['unwrapKey'],
+        )
+        expect(privateCryptoKey.extractable).toBe(false)
+
+        const reader = new ResultsReader(zip, privateCryptoKey, fingerprint)
+        const entries = await reader.extractFiles()
+
+        expect(entries).toHaveLength(1)
+        expect(new TextDecoder().decode(entries[0].contents)).toEqual('hello world!')
+    })
 })
 
 describe('listFiles and extractFile', async () => {

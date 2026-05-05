@@ -1,7 +1,7 @@
 import { BlobReader, BlobWriter, TextWriter, ZipReader } from '@zip.js/zip.js'
 import type { FileEntry as ZipFileEntry } from '@zip.js/zip.js'
 import type { ResultsFile, ResultsManifest, FileEntry, FileInfo } from './types'
-import { privateKeyFromBuffer } from '../util'
+import { privateKeyFromBufferForUnwrap } from '../util'
 import logger from '../lib/logger'
 
 export class ResultsReader {
@@ -11,13 +11,44 @@ export class ResultsReader {
 
     private zipReader: ZipReader<Blob>
     private fingerprint: string
-    private privateKey: ArrayBuffer
+    private privateKey: ArrayBuffer | CryptoKey
+    private importedKey?: CryptoKey
     private decoded = false
 
-    constructor(zipBlob: Blob, privateKey: ArrayBuffer, fingerprint: string) {
+    /**
+     * Construct a reader from a pre-imported `CryptoKey`.
+     *
+     * The `CryptoKey` must have been imported with `keyUsages: ['unwrapKey']`
+     * (RSA-OAEP, SHA-256). It may be (and is recommended to be) non-extractable,
+     * so raw key bytes never reside in JS memory.
+     *
+     * @param fingerprint  SHA-256 hex of the SPKI public key. Required — it
+     *   cannot be derived from a non-extractable key.
+     */
+    constructor(zipBlob: Blob, privateKey: CryptoKey, fingerprint: string)
+    /**
+     * @deprecated Pass a `CryptoKey` instead so raw key bytes do not have to
+     *   live in JS memory. Import as:
+     *   `crypto.subtle.importKey('pkcs8', bytes, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['unwrapKey'])`.
+     */
+    constructor(zipBlob: Blob, privateKey: ArrayBuffer, fingerprint: string)
+    constructor(zipBlob: Blob, privateKey: ArrayBuffer | CryptoKey, fingerprint: string) {
+        if (privateKey instanceof CryptoKey && !privateKey.usages.includes('unwrapKey')) {
+            throw new Error(
+                `ResultsReader: CryptoKey must be imported with usages: ['unwrapKey'] (got: ${JSON.stringify(privateKey.usages)})`,
+            )
+        }
         this.zipReader = new ZipReader(new BlobReader(zipBlob))
         this.fingerprint = fingerprint
         this.privateKey = privateKey
+    }
+
+    private async getPrivateKey(): Promise<CryptoKey> {
+        if (this.privateKey instanceof CryptoKey) return this.privateKey
+        if (!this.importedKey) {
+            this.importedKey = await privateKeyFromBufferForUnwrap(this.privateKey)
+        }
+        return this.importedKey
     }
 
     async extractFiles() {
@@ -113,15 +144,15 @@ export class ResultsReader {
 
         const encryptedKey = Buffer.from(encryptedKeyBase64, 'base64')
 
-        const rawKey = await crypto.subtle.decrypt(
-            {
-                name: 'RSA-OAEP',
-            },
-            await privateKeyFromBuffer(this.privateKey),
+        const key = await crypto.subtle.unwrapKey(
+            'raw',
             encryptedKey,
+            await this.getPrivateKey(),
+            { name: 'RSA-OAEP' },
+            { name: 'AES-CBC', length: 256 },
+            false,
+            ['decrypt'],
         )
-
-        const key = await crypto.subtle.importKey('raw', rawKey, { name: 'AES-CBC' }, false, ['decrypt'])
 
         logger.info(`Finished decrypting key`)
 
