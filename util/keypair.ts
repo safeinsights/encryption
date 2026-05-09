@@ -129,6 +129,12 @@ export async function privateKeyFromBuffer(privateKeyBuffer: ArrayBuffer): Promi
     return key
 }
 
+export async function privateKeyFromBufferForUnwrap(privateKeyBuffer: ArrayBuffer): Promise<CryptoKey> {
+    return crypto.subtle.importKey('pkcs8', privateKeyBuffer, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, [
+        'unwrapKey',
+    ])
+}
+
 export async function fingerprintPublicKeyFromPrivateKey(privateKey: CryptoKey) {
     logger.info(`Creating fingerprint from private key`)
     // Export the private key as a JWK (JSON Web Key)
