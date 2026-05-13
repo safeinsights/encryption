@@ -1,0 +1,7 @@
+node_modules/
+coverage/
+.bun/
+bun.lock
+bun.lockb
+.claude/
+age-pivot-analysis.md

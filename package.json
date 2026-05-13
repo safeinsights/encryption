@@ -9,9 +9,9 @@
         "typecheck": "tsc --noEmit",
         "lint": "eslint && prettier --check .",
         "lint:fix": "eslint --fix && prettier --write .",
-        "pre:push": "npm run lint:fix && npm run typecheck",
-        "checks": "npm run typecheck && npm run lint",
-        "ci": "npm run checks && npm run test"
+        "pre:push": "bun run lint:fix && bun run typecheck",
+        "checks": "bun run typecheck && bun run lint",
+        "ci": "bun run checks && bun run test"
     },
     "repository": {
         "type": "git",
