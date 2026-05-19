@@ -23,6 +23,7 @@
         "url": "https://github.com/safeinsights/encryption/issues"
     },
     "homepage": "https://github.com/safeinsights/encryption#readme",
+    "packageManager": "pnpm@11.1.3",
     "devDependencies": {
         "@eslint/js": "*",
         "@types/debug": "^4.1.12",
@@ -33,6 +34,7 @@
         "happy-dom": "*",
         "prettier": "*",
         "tsx": "^4.20.4",
+        "typescript": "^6.0.3",
         "typescript-eslint": "^8.49.0",
         "vitest": "^4.1.5"
     },

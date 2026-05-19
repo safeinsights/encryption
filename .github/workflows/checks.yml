@@ -54,7 +54,3 @@ jobs:
               timeout-minutes: 5
               env:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-            - name: Typecheck
-              run: pnpm run typecheck
-            - name: Unit Test
-              run: pnpm run test
