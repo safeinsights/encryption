@@ -1,0 +1,6 @@
+node_modules/
+coverage/
+.pnpm-store/
+pnpm-lock.yaml
+.claude/
+age-pivot-analysis.md
