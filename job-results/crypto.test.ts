@@ -3,7 +3,7 @@ import { readPublicKey, readPrivateKey } from '../testing'
 import { fingerprintKeyData, pemToArrayBuffer, generateKeyPair } from '../util'
 import { ResultsWriter } from './writer'
 import { ResultsReader } from './reader'
-import { unwrapAesKey, wrapAesKey } from './crypto'
+import { unwrapAesKey, wrapAesKey, decryptFile } from './crypto'
 
 const toArrayBuffer = (str: string): ArrayBuffer => {
     const buf = Buffer.from(str, 'utf-8')
@@ -22,6 +22,31 @@ describe('wrapAesKey / unwrapAesKey', () => {
         const { rawAesKey: unwrapped } = await unwrapAesKey(crypt, privateKey)
 
         expect(new Uint8Array(unwrapped)).toEqual(new Uint8Array(rawAesKey))
+    })
+})
+
+describe('decryptFile', () => {
+    it('decrypts a standalone body + metadata and returns the raw AES key', async () => {
+        const publicKey = pemToArrayBuffer(readPublicKey())
+        const privateKey = pemToArrayBuffer(readPrivateKey())
+
+        // Encrypt a body with AES-CBC, then RSA-wrap the AES key.
+        const aesKey = await crypto.subtle.generateKey({ name: 'AES-CBC', length: 256 }, true, ['encrypt'])
+        const rawAesKey = await crypto.subtle.exportKey('raw', aesKey)
+        const iv = crypto.getRandomValues(new Uint8Array(16))
+        const plaintext = toArrayBuffer('secret,data')
+        const body = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, aesKey, plaintext)
+        const crypt = await wrapAesKey(rawAesKey, publicKey)
+
+        const { contents, rawAesKey: recovered } = await decryptFile({
+            body,
+            iv: Buffer.from(iv).toString('base64'),
+            crypt,
+            privateKey,
+        })
+
+        expect(new TextDecoder().decode(contents)).toBe('secret,data')
+        expect(new Uint8Array(recovered)).toEqual(new Uint8Array(rawAesKey))
     })
 })
 
