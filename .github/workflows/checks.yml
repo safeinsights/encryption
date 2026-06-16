@@ -52,3 +52,12 @@ jobs:
               timeout-minutes: 5
               env:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            - name: DEBUG quality gate conditions
+              if: always()
+              env:
+                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+                  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+              run: |
+                  curl -sS -u "${SONAR_TOKEN}:" \
+                      "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=encryption" \
+                      | jq '.projectStatus | {status, conditions: [.conditions[] | select(.status=="ERROR")]}'
