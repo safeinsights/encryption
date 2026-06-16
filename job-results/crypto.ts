@@ -2,16 +2,9 @@ import { privateKeyFromBuffer } from '../util'
 import logger from '../lib/logger'
 
 /**
- * Symmetric algorithm used for file bodies. AES-GCM is authenticated (AEAD):
- * decryption fails loudly if the ciphertext or IV is tampered with, unlike the
- * malleable AES-CBC it replaced.
- */
-export const AES_ALGORITHM = 'AES-GCM' as const
-
-/**
  * Decrypt (unwrap) a file's AES key using an RSA private key.
  *
- * Returns both a ready-to-use AES-GCM `CryptoKey` and the raw key bytes.
+ * Returns both a ready-to-use AES-CBC `CryptoKey` and the raw key bytes.
  * The raw bytes are what re-wrap needs: to grant another recipient access we
  * RSA-encrypt these same bytes for their public key (see {@link wrapAesKey}),
  * leaving the file ciphertext untouched.
@@ -28,7 +21,7 @@ export async function unwrapAesKey(
         encryptedKey,
     )
 
-    const aesKey = await crypto.subtle.importKey('raw', rawAesKey, { name: AES_ALGORITHM }, false, ['decrypt'])
+    const aesKey = await crypto.subtle.importKey('raw', rawAesKey, { name: 'AES-CBC' }, false, ['decrypt'])
 
     return { aesKey, rawAesKey }
 }
@@ -49,7 +42,7 @@ export async function wrapAesKey(rawAesKey: ArrayBuffer, publicKey: ArrayBuffer)
 }
 
 export async function decryptFileBody(body: ArrayBuffer, iv: BufferSource, aesKey: CryptoKey): Promise<ArrayBuffer> {
-    return crypto.subtle.decrypt({ name: AES_ALGORITHM, iv }, aesKey, body)
+    return crypto.subtle.decrypt({ name: 'AES-CBC', iv }, aesKey, body)
 }
 
 /**

@@ -18,7 +18,6 @@ export type ResultsFile = {
     bytes: number // size of the file in bytes BEFORE encryption
     iv: string // initialization vector for encryption, should be unique for each file
     keys: FileKeyMap // mapping of key fingerprint <-> encrypted AES key
-    algo: 'AES-GCM' // symmetric cipher used for the file body
 }
 
 export type ResultsManifest = {

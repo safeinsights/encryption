@@ -1,7 +1,7 @@
 import { ZipWriter, BlobWriter, TextReader, BlobReader } from '@zip.js/zip.js'
 
 import type { ResultsManifest, PublicKey, FileKeyMap } from './types'
-import { wrapAesKey, AES_ALGORITHM } from './crypto'
+import { wrapAesKey } from './crypto'
 import logger from '../lib/logger'
 
 export class ResultsWriter {
@@ -17,13 +17,13 @@ export class ResultsWriter {
         logger.info(`Adding file ${fileName} to manifest`)
 
         // Generate AES key
-        const aesKey = await crypto.subtle.generateKey({ name: AES_ALGORITHM, length: 256 }, true, ['encrypt'])
+        const aesKey = await crypto.subtle.generateKey({ name: 'AES-CBC', length: 256 }, true, ['encrypt'])
 
-        // Generate random IV (96-bit, the recommended size for AES-GCM)
-        const iv = crypto.getRandomValues(new Uint8Array(12))
+        // Generate random IV
+        const iv = crypto.getRandomValues(new Uint8Array(16))
 
-        // Encrypt content (ciphertext carries the GCM authentication tag)
-        const encryptedData = await crypto.subtle.encrypt({ name: AES_ALGORITHM, iv }, aesKey, content)
+        // Encrypt content
+        const encryptedData = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, aesKey, content)
 
         // Export AES key as raw bytes
         const rawAesKey = await crypto.subtle.exportKey('raw', aesKey)
@@ -42,7 +42,6 @@ export class ResultsWriter {
             bytes: content.byteLength, // n.b. size BEFORE encryption
             keys,
             iv: Buffer.from(iv).toString('base64'),
-            algo: AES_ALGORITHM,
         }
         logger.info(`Finished adding file ${fileName} to manifest`)
     }

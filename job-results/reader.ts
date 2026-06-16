@@ -1,7 +1,7 @@
 import { BlobReader, BlobWriter, TextWriter, ZipReader } from '@zip.js/zip.js'
 import type { FileEntry as ZipFileEntry } from '@zip.js/zip.js'
 import type { ResultsFile, ResultsManifest, FileEntry, FileInfo } from './types'
-import { decryptFileBody, unwrapAesKey, AES_ALGORITHM } from './crypto'
+import { decryptFileBody, unwrapAesKey } from './crypto'
 import logger from '../lib/logger'
 
 export type DecryptedEntry = FileEntry & { rawAesKey: ArrayBuffer }
@@ -123,10 +123,6 @@ export class ResultsReader {
         entry: ZipFileEntry,
     ): Promise<{ contents: ArrayBuffer; rawAesKey: ArrayBuffer }> {
         logger.info(`Reading file ${entry.filename}`)
-
-        if (fileEntry.algo !== AES_ALGORITHM) {
-            throw new Error(`Unsupported cipher "${fileEntry.algo}" for ${entry.filename}; expected ${AES_ALGORITHM}`)
-        }
 
         const encryptedData = await entry.getData(new BlobWriter())
 
