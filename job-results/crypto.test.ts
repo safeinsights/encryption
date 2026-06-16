@@ -15,7 +15,7 @@ describe('wrapAesKey / unwrapAesKey', () => {
         const publicKey = pemToArrayBuffer(readPublicKey())
         const privateKey = pemToArrayBuffer(readPrivateKey())
 
-        const aesKey = await crypto.subtle.generateKey({ name: 'AES-CBC', length: 256 }, true, ['encrypt'])
+        const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt'])
         const rawAesKey = await crypto.subtle.exportKey('raw', aesKey)
 
         const crypt = await wrapAesKey(rawAesKey, publicKey)
@@ -26,16 +26,35 @@ describe('wrapAesKey / unwrapAesKey', () => {
 })
 
 describe('decryptFile', () => {
+    it('rejects tampered ciphertext (AES-GCM authentication)', async () => {
+        const publicKey = pemToArrayBuffer(readPublicKey())
+        const privateKey = pemToArrayBuffer(readPrivateKey())
+
+        const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt'])
+        const rawAesKey = await crypto.subtle.exportKey('raw', aesKey)
+        const iv = crypto.getRandomValues(new Uint8Array(12))
+        const body = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, toArrayBuffer('secret,data'))
+        const crypt = await wrapAesKey(rawAesKey, publicKey)
+
+        // Flip a byte — GCM must refuse to decrypt rather than return garbage.
+        const tampered = new Uint8Array(body)
+        tampered[0] ^= 0xff
+
+        await expect(
+            decryptFile({ body: tampered.buffer, iv: Buffer.from(iv).toString('base64'), crypt, privateKey }),
+        ).rejects.toThrow()
+    })
+
     it('decrypts a standalone body + metadata and returns the raw AES key', async () => {
         const publicKey = pemToArrayBuffer(readPublicKey())
         const privateKey = pemToArrayBuffer(readPrivateKey())
 
-        // Encrypt a body with AES-CBC, then RSA-wrap the AES key.
-        const aesKey = await crypto.subtle.generateKey({ name: 'AES-CBC', length: 256 }, true, ['encrypt'])
+        // Encrypt a body with AES-GCM, then RSA-wrap the AES key.
+        const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt'])
         const rawAesKey = await crypto.subtle.exportKey('raw', aesKey)
-        const iv = crypto.getRandomValues(new Uint8Array(16))
+        const iv = crypto.getRandomValues(new Uint8Array(12))
         const plaintext = toArrayBuffer('secret,data')
-        const body = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, aesKey, plaintext)
+        const body = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, plaintext)
         const crypt = await wrapAesKey(rawAesKey, publicKey)
 
         const { contents, rawAesKey: recovered } = await decryptFile({
