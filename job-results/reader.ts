@@ -14,7 +14,7 @@ export class ResultsReader {
     private zipReader: ZipReader<Blob>
     private fingerprint: string
     private privateKey: ArrayBuffer
-    private overrideKeys: Record<string, string>
+    private readonly overrideKeys: Record<string, string>
     private decoded = false
 
     /**
