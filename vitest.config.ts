@@ -6,5 +6,10 @@ export default defineConfig({
         mockReset: true,
         environment: 'happy-dom',
         include: ['**/*.(test).{js,jsx,ts,tsx}'],
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'lcov'],
+            include: ['job-results/**/*.ts', 'lib/**/*.ts', 'util/**/*.ts'],
+        },
     },
 })

@@ -4,25 +4,42 @@ on:
         branches: [main]
     pull_request:
 
+permissions:
+    contents: read
+
 jobs:
     all:
         timeout-minutes: 15
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
+            - uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+            - uses: pnpm/action-setup@v6
+            - uses: actions/setup-node@v6
               with:
                   node-version: lts/*
+                  cache: 'pnpm'
             - name: Install dependencies
-              run: npm i
+              run: pnpm install --frozen-lockfile
             - name: Run Specs
-              run: npm run ci
+              run: pnpm run ci
+            - name: Generate Coverage
+              run: pnpm exec vitest run --coverage
             - name: Run Trivy vulnerability scanner in fs mode
               uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
               with:
                   scan-type: 'fs'
                   scan-ref: '.'
                   trivy-config: trivy.yaml
+            - name: Run Trivy license scanner
+              uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+              with:
+                  scan-type: 'fs'
+                  scan-ref: '.'
+                  scanners: 'license'
+                  severity: 'HIGH,CRITICAL'
+                  exit-code: '1'
             - name: Run SonarQube SAST Scan
               uses: SonarSource/sonarqube-scan-action@v6
               env:
@@ -35,7 +52,3 @@ jobs:
               timeout-minutes: 5
               env:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-            - name: Typecheck
-              run: npm run typecheck
-            - name: Unit Test
-              run: npm run test
