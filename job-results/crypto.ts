@@ -2,12 +2,8 @@ import { privateKeyFromBuffer } from '../util'
 import logger from '../lib/logger'
 
 /**
- * Decrypt (unwrap) a file's AES key using an RSA private key.
- *
- * Returns both a ready-to-use AES-CBC `CryptoKey` and the raw key bytes.
- * The raw bytes are what re-wrap needs: to grant another recipient access we
- * RSA-encrypt these same bytes for their public key (see {@link wrapAesKey}),
- * leaving the file ciphertext untouched.
+ * Unwrap a file's RSA-encrypted AES key. Returns the AES `CryptoKey` plus its raw
+ * bytes — re-wrap needs the bytes to grant other recipients access (see {@link wrapAesKey}).
  */
 export async function unwrapAesKey(
     crypt: string,
@@ -26,11 +22,7 @@ export async function unwrapAesKey(
     return { aesKey, rawAesKey }
 }
 
-/**
- * Wrap a raw AES key for a recipient's RSA public key — the re-wrap primitive.
- * Produces a new base64 "PO box" (`crypt`) that only that recipient can open;
- * the file body and IV are never re-encrypted.
- */
+/** Re-wrap a raw AES key for a recipient's RSA public key. Body and IV are untouched. */
 export async function wrapAesKey(rawAesKey: ArrayBuffer, publicKey: ArrayBuffer): Promise<string> {
     const key = await crypto.subtle.importKey('spki', publicKey, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, [
         'encrypt',
@@ -46,12 +38,8 @@ export async function decryptFileBody(body: ArrayBuffer, iv: BufferSource, aesKe
 }
 
 /**
- * Zip-free decrypt of a single file body + its metadata. Mirrors what
- * {@link ResultsReader} does internally, but operates on a standalone encrypted
- * body rather than iterating a zip archive.
- *
- * Also returns the raw AES key so the caller (the reviewer's browser) can re-wrap
- * it for researchers at approve time without decrypting a second time.
+ * Decrypt a standalone file body + metadata (vs {@link ResultsReader}'s zip iteration).
+ * Returns the raw AES key too, so the caller can re-wrap without decrypting again.
  */
 export async function decryptFile({
     body,

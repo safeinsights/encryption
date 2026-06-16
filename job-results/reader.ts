@@ -18,11 +18,9 @@ export class ResultsReader {
     private decoded = false
 
     /**
-     * @param overrideKeys optional map of inner file path -> wrapped AES key (`crypt`).
-     *   When a path has an override, that crypt is unwrapped with `privateKey` instead
-     *   of looking up `fingerprint` in the embedded manifest. This lets a recipient who
-     *   was NOT an original manifest key holder (e.g. a researcher granted access at
-     *   approval time) decrypt the same ciphertext using their own re-wrapped key.
+     * @param overrideKeys inner file path -> wrapped AES key. When set for a path, that key is
+     *   unwrapped instead of the manifest's `fingerprint` entry — lets a recipient not in the
+     *   original manifest (e.g. a researcher granted access later) decrypt the same ciphertext.
      */
     constructor(
         zipBlob: Blob,
@@ -41,11 +39,7 @@ export class ResultsReader {
         return entries.map(({ path, contents }) => ({ path, contents }))
     }
 
-    /**
-     * Like {@link extractFiles}, but also returns each file's raw AES key. The
-     * reviewer's browser uses these to re-wrap keys for researchers at approve
-     * time without decrypting a second time.
-     */
+    /** Like {@link extractFiles}, but also returns each file's raw AES key for re-wrapping. */
     async extractFilesWithKeys(): Promise<DecryptedEntry[]> {
         logger.info(`Extracting files`)
 
