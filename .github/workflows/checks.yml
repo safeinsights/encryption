@@ -61,3 +61,7 @@ jobs:
                   curl -sS -u "${SONAR_TOKEN}:" \
                       "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=encryption" \
                       | jq '.projectStatus | {status, conditions: [.conditions[] | select(.status=="ERROR")]}'
+                  echo "=== new-code issues ==="
+                  curl -sS -u "${SONAR_TOKEN}:" \
+                      "${SONAR_HOST_URL}/api/issues/search?componentKeys=encryption&inNewCodePeriod=true&resolved=false" \
+                      | jq '[.issues[] | {rule, severity, type, component, line, message}]'
