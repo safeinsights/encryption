@@ -14,24 +14,25 @@ export class ResultsReader {
     private zipReader: ZipReader<Blob>
     private fingerprint: string
     private privateKey: ArrayBuffer
-    private readonly overrideKeys: Record<string, string>
+    private readonly additionalKeys: Record<string, string>
     private decoded = false
 
     /**
-     * @param overrideKeys inner file path -> wrapped AES key. When set for a path, that key is
-     *   unwrapped instead of the manifest's `fingerprint` entry — lets a recipient not in the
-     *   original manifest (e.g. a researcher granted access later) decrypt the same ciphertext.
+     * @param additionalKeys inner file path -> AES key wrapped for *this* `fingerprint`. Lets a
+     *   recipient absent from the original manifest (e.g. a researcher granted access later)
+     *   decrypt the same ciphertext: on decode these are spliced into the manifest under
+     *   `fingerprint`, so reads stay a single fingerprint lookup with no bypass.
      */
     constructor(
         zipBlob: Blob,
         privateKey: ArrayBuffer,
         fingerprint: string,
-        overrideKeys: Record<string, string> = {},
+        additionalKeys: Record<string, string> = {},
     ) {
         this.zipReader = new ZipReader(new BlobReader(zipBlob))
         this.fingerprint = fingerprint
         this.privateKey = privateKey
-        this.overrideKeys = overrideKeys
+        this.additionalKeys = additionalKeys
     }
 
     async extractFiles(): Promise<FileEntry[]> {
@@ -72,6 +73,13 @@ export class ResultsReader {
 
         if (!this.manifest) {
             throw new Error('Manifest not found in zip archive.')
+        }
+
+        // Splice any caller-supplied keys into the manifest under our fingerprint, so a recipient
+        // not baked into the zip (e.g. a researcher) reads through the same path as everyone else.
+        for (const [path, crypt] of Object.entries(this.additionalKeys)) {
+            const file = this.manifest.files[path]
+            if (file) file.keys[this.fingerprint] = { crypt }
         }
 
         this.decoded = true
@@ -120,7 +128,7 @@ export class ResultsReader {
 
         const encryptedData = await entry.getData(new BlobWriter())
 
-        const crypt = this.overrideKeys[entry.filename] ?? fileEntry.keys[this.fingerprint]?.crypt
+        const crypt = fileEntry.keys[this.fingerprint]?.crypt
         if (!crypt) throw new Error(`file was not encrypted with key signature ${this.fingerprint}`)
 
         const { aesKey, rawAesKey } = await unwrapAesKey(crypt, this.privateKey)

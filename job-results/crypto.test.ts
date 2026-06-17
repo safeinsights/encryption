@@ -80,6 +80,52 @@ describe('ResultsReader override keys (researcher re-wrap)', () => {
         expect(new TextDecoder().decode(out.contents)).toBe('secret,data')
     })
 
+    it('throws cleanly when an override is wrapped for a different keypair', async () => {
+        const doPublic = pemToArrayBuffer(readPublicKey())
+        const doFingerprint = await fingerprintKeyData(doPublic)
+
+        const writer = new ResultsWriter([{ publicKey: doPublic, fingerprint: doFingerprint }])
+        await writer.addFile('result.csv', toArrayBuffer('secret,data'))
+        const zip = await writer.generate()
+
+        const reviewer = new ResultsReader(zip, pemToArrayBuffer(readPrivateKey()), doFingerprint)
+        const [entry] = await reviewer.extractFilesWithKeys()
+
+        // Wrap the raw key for researcher A, but hand the reader researcher B's private key.
+        const researcherA = await generateKeyPair()
+        const researcherB = await generateKeyPair()
+        const crypt = await wrapAesKey(entry.rawAesKey, researcherA.exportedPublicKey)
+
+        const reader = new ResultsReader(zip, researcherB.exportedPrivateKey, researcherB.fingerprint, {
+            'result.csv': crypt,
+        })
+        // RSA-OAEP unwrap fails on the mismatched key — deterministic throw, never garbage plaintext.
+        await expect(reader.extractFiles()).rejects.toThrow()
+    })
+
+    it('throws when a manifest file has neither a fingerprint match nor an override', async () => {
+        const doPublic = pemToArrayBuffer(readPublicKey())
+        const doFingerprint = await fingerprintKeyData(doPublic)
+
+        const writer = new ResultsWriter([{ publicKey: doPublic, fingerprint: doFingerprint }])
+        await writer.addFile('a.csv', toArrayBuffer('alpha'))
+        await writer.addFile('b.csv', toArrayBuffer('beta'))
+        const zip = await writer.generate()
+
+        const researcher = await generateKeyPair()
+        // Override supplied for a.csv only; b.csv has no key for this researcher.
+        const crypt = await wrapAesKey(
+            (await new ResultsReader(zip, pemToArrayBuffer(readPrivateKey()), doFingerprint).extractFilesWithKeys())[0]
+                .rawAesKey,
+            researcher.exportedPublicKey,
+        )
+
+        const reader = new ResultsReader(zip, researcher.exportedPrivateKey, researcher.fingerprint, {
+            'a.csv': crypt,
+        })
+        await expect(reader.extractFiles()).rejects.toThrow(/key signature/)
+    })
+
     it('still reads with the manifest fingerprint when no override is supplied', async () => {
         const publicKey = pemToArrayBuffer(readPublicKey())
         const fingerprint = await fingerprintKeyData(publicKey)

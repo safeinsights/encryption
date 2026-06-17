@@ -16,7 +16,10 @@ export class ResultsWriter {
     async addFile(fileName: string, content: ArrayBuffer) {
         logger.info(`Adding file ${fileName} to manifest`)
 
-        // Generate AES key
+        // AES-CBC (not GCM) for backward-compat: existing production results are CBC-encrypted,
+        // and the cipher isn't stamped in the manifest, so switching would orphan that data.
+        // NOTE: CBC is unauthenticated — ciphertext/IV integrity is NOT verified on decrypt
+        // (SonarQube S5542). Callers must not treat decrypted bodies as tamper-proof.
         const aesKey = await crypto.subtle.generateKey({ name: 'AES-CBC', length: 256 }, true, ['encrypt'])
 
         // Generate random IV

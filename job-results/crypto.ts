@@ -33,6 +33,9 @@ export async function wrapAesKey(rawAesKey: ArrayBuffer, publicKey: ArrayBuffer)
     return Buffer.from(encryptedKey).toString('base64')
 }
 
+// AES-CBC kept for backward-compat with existing production results (see writer.addFile).
+// CBC is unauthenticated: a wrong-but-valid key usually trips PKCS#7 padding and throws, but not
+// guaranteed (~1/256 yields garbage, no error), and tampered ciphertext is not detected.
 export async function decryptFileBody(body: ArrayBuffer, iv: BufferSource, aesKey: CryptoKey): Promise<ArrayBuffer> {
     return crypto.subtle.decrypt({ name: 'AES-CBC', iv }, aesKey, body)
 }
