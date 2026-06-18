@@ -114,11 +114,13 @@ describe('ResultsReader override keys (researcher re-wrap)', () => {
 
         const researcher = await generateKeyPair()
         // Override supplied for a.csv only; b.csv has no key for this researcher.
-        const crypt = await wrapAesKey(
-            (await new ResultsReader(zip, pemToArrayBuffer(readPrivateKey()), doFingerprint).extractFilesWithKeys())[0]
-                .rawAesKey,
-            researcher.exportedPublicKey,
-        )
+        const decrypted = await new ResultsReader(
+            zip,
+            pemToArrayBuffer(readPrivateKey()),
+            doFingerprint,
+        ).extractFilesWithKeys()
+        const aEntry = decrypted.find((e) => e.path === 'a.csv')!
+        const crypt = await wrapAesKey(aEntry.rawAesKey, researcher.exportedPublicKey)
 
         const reader = new ResultsReader(zip, researcher.exportedPrivateKey, researcher.fingerprint, {
             'a.csv': crypt,

@@ -64,14 +64,16 @@ export class ResultsReader {
         logger.info(`Decoding entries`)
 
         const entries = await this.zipReader.getEntries()
+        let manifestFound = false
         for (const entry of entries) {
-            if (!entry.directory && entry.filename == 'manifest.json') {
+            if (!entry.directory && entry.filename === 'manifest.json') {
                 const manifestText = await entry.getData(new TextWriter())
                 this.manifest = JSON.parse(manifestText) as ResultsManifest
+                manifestFound = true
             }
         }
 
-        if (!this.manifest) {
+        if (!manifestFound) {
             throw new Error('Manifest not found in zip archive.')
         }
 
