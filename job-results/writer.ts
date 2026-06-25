@@ -1,6 +1,7 @@
 import { ZipWriter, BlobWriter, TextReader, BlobReader } from '@zip.js/zip.js'
 
 import type { ResultsManifest, PublicKey, FileKeyMap } from './types'
+import { wrapAesKey } from './crypto'
 import logger from '../lib/logger'
 
 export class ResultsWriter {
@@ -15,7 +16,10 @@ export class ResultsWriter {
     async addFile(fileName: string, content: ArrayBuffer) {
         logger.info(`Adding file ${fileName} to manifest`)
 
-        // Generate AES key
+        // AES-CBC (not GCM) for backward-compat: existing production results are CBC-encrypted,
+        // and the cipher isn't stamped in the manifest, so switching would orphan that data.
+        // NOTE: CBC is unauthenticated — ciphertext/IV integrity is NOT verified on decrypt
+        // (SonarQube S5542). Callers must not treat decrypted bodies as tamper-proof.
         const aesKey = await crypto.subtle.generateKey({ name: 'AES-CBC', length: 256 }, true, ['encrypt'])
 
         // Generate random IV
@@ -30,7 +34,7 @@ export class ResultsWriter {
         const keys: FileKeyMap = {}
         for (const key of this.publicKeys) {
             keys[key.fingerprint] = {
-                crypt: await this.encryptAesKeyWithPublicKey(key, rawAesKey),
+                crypt: await wrapAesKey(rawAesKey, key.publicKey),
             }
         }
 
@@ -53,33 +57,5 @@ export class ResultsWriter {
 
         logger.info(`Finished adding manifest.json to zip`)
         return this.zipBlobWriter.getData()
-    }
-
-    private async encryptAesKeyWithPublicKey(key: PublicKey, aesKey: ArrayBuffer): Promise<string> {
-        logger.info(`Encrypting AES key`)
-
-        // Decode the public key
-        const publicKey = await crypto.subtle.importKey(
-            'spki',
-            key.publicKey,
-            {
-                name: 'RSA-OAEP',
-                hash: 'SHA-256',
-            },
-            false,
-            ['encrypt'],
-        )
-
-        // Encrypt the AES key
-        const encryptedKey = await crypto.subtle.encrypt(
-            {
-                name: 'RSA-OAEP',
-            },
-            publicKey,
-            aesKey,
-        )
-
-        logger.info(`Finished encrypting AES key`)
-        return Buffer.from(encryptedKey).toString('base64')
     }
 }
