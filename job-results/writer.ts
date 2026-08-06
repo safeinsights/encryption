@@ -4,6 +4,14 @@ import type { ResultsManifest, PublicKey, FileKeyMap } from './types'
 import { wrapAesKey } from './crypto'
 import logger from '../lib/logger'
 
+// The AES key is discarded once wrapped for each recipient, so a file written with no recipients
+// is permanently undecryptable — and the zip still looks valid. Fail loudly instead.
+function assertHasRecipients(publicKeys: PublicKey[]) {
+    if (!publicKeys?.length) {
+        throw new Error('ResultsWriter requires at least one recipient public key')
+    }
+}
+
 export class ResultsWriter {
     zipBlobWriter = new BlobWriter('application/zip')
     zip = new ZipWriter(this.zipBlobWriter)
@@ -11,9 +19,14 @@ export class ResultsWriter {
         files: {},
     }
 
-    constructor(public publicKeys: PublicKey[]) {}
+    constructor(public publicKeys: PublicKey[]) {
+        assertHasRecipients(publicKeys)
+    }
 
     async addFile(fileName: string, content: ArrayBuffer) {
+        // re-checked here: publicKeys is public and mutable after construction
+        assertHasRecipients(this.publicKeys)
+
         logger.info(`Adding file ${fileName} to manifest`)
 
         // AES-CBC (not GCM) for backward-compat: existing production results are CBC-encrypted,
