@@ -18,7 +18,7 @@
         "url": "git+https://github.com/safeinsights/encryption.git"
     },
     "author": "Nathan Stitt",
-    "license": "MIT",
+    "license": "AGPL-3.0-only",
     "bugs": {
         "url": "https://github.com/safeinsights/encryption/issues"
     },
