@@ -27,7 +27,17 @@ export class ResultsWriter {
         // re-checked here: publicKeys is public and mutable after construction
         assertHasRecipients(this.publicKeys)
 
-        logger.info(`Adding file ${fileName} to manifest`)
+        // zip.js trims entry names on add, so storing the raw name as the manifest key let the two
+        // disagree and the file vanished from reads. Derive both from one trimmed value instead.
+        const name = fileName.trim()
+        if (!name) {
+            throw new Error(`Invalid filename ${JSON.stringify(fileName)}: empty once trimmed`)
+        }
+        if (this.manifest.files[name]) {
+            throw new Error(`Duplicate filename ${JSON.stringify(name)} already added`)
+        }
+
+        logger.info(`Adding file ${name} to manifest`)
 
         // AES-CBC (not GCM) for backward-compat: existing production results are CBC-encrypted,
         // and the cipher isn't stamped in the manifest, so switching would orphan that data.
@@ -51,15 +61,15 @@ export class ResultsWriter {
             }
         }
 
-        await this.zip.add(fileName, new BlobReader(new Blob([encryptedData])))
+        await this.zip.add(name, new BlobReader(new Blob([encryptedData])))
 
-        this.manifest.files[fileName] = {
-            path: fileName,
+        this.manifest.files[name] = {
+            path: name,
             bytes: content.byteLength, // n.b. size BEFORE encryption
             keys,
             iv: Buffer.from(iv).toString('base64'),
         }
-        logger.info(`Finished adding file ${fileName} to manifest`)
+        logger.info(`Finished adding file ${name} to manifest`)
     }
 
     async generate(): Promise<Blob> {

@@ -33,3 +33,11 @@ export type FileInfo = {
     path: string
     bytes: number // original (pre-encryption) file size
 }
+
+/** Outcome of checking the manifest against the zip's actual entries. */
+export type ReconciliationReport = {
+    matched: string[] // canonical (zip) names that resolved cleanly — what a read yields
+    missingFromZip: string[] // manifest keys with no zip entry: lost data, or an adversarial drop
+    extraInZip: string[] // zip entries absent from the manifest, so undecryptable
+    normalized: { manifestKey: string; zipName: string }[] // matched only after trimming
+}
