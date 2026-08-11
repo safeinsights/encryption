@@ -32,6 +32,19 @@ export type ReadOptions = {
     partial?: boolean
 }
 
+/**
+ * Resolve a manifest key to the zip entry it names.
+ *
+ * Falls back to the trimmed key so archives written before the writer was fixed — whose keys kept
+ * whitespace that zip.js had already stripped from the entry name — still read.
+ */
+function resolveZipName(manifestKey: string, zipNames: ReadonlySet<string>): string | undefined {
+    if (zipNames.has(manifestKey)) return manifestKey
+
+    const trimmed = manifestKey.trim()
+    return zipNames.has(trimmed) ? trimmed : undefined
+}
+
 export type ReaderOptions = {
     /**
      * The job these results are expected to belong to, known out of band (from the caller's own
@@ -222,10 +235,7 @@ export class ResultsReader {
         await this.decode()
         this.resolvedNames.clear() // a prior call may have thrown partway through
 
-        const zipNames = new Set<string>()
-        for (const entry of await this.zipReader.getEntries()) {
-            if (!entry.directory && entry.filename !== MANIFEST_FILENAME) zipNames.add(entry.filename)
-        }
+        const zipNames = await this.zipEntryNames()
 
         const matched: string[] = []
         const missingFromZip: string[] = []
@@ -233,13 +243,7 @@ export class ResultsReader {
         const claimedBy = new Map<string, string>() // zip name -> the manifest key that took it
 
         for (const manifestKey of Object.keys(this.manifest.files)) {
-            // fall back to the trimmed key so archives written before the writer was fixed, whose
-            // keys kept whitespace that zip.js had already stripped, still read
-            const zipName = zipNames.has(manifestKey)
-                ? manifestKey
-                : zipNames.has(manifestKey.trim())
-                  ? manifestKey.trim()
-                  : undefined
+            const zipName = resolveZipName(manifestKey, zipNames)
 
             if (zipName === undefined) {
                 missingFromZip.push(manifestKey)
@@ -267,6 +271,15 @@ export class ResultsReader {
             normalized,
         }
         return this.reconciliation
+    }
+
+    /** Names of the archive's real file entries — directories and the manifest itself excluded. */
+    private async zipEntryNames(): Promise<Set<string>> {
+        const names = new Set<string>()
+        for (const entry of await this.zipReader.getEntries()) {
+            if (!entry.directory && entry.filename !== MANIFEST_FILENAME) names.add(entry.filename)
+        }
+        return names
     }
 
     /** Reconcile, and refuse to read at all if anything is missing or unaccounted for. */
