@@ -1,7 +1,15 @@
 import { BlobReader, BlobWriter, TextWriter, ZipReader } from '@zip.js/zip.js'
 import type { FileEntry as ZipFileEntry } from '@zip.js/zip.js'
-import type { ResultsFile, ResultsManifest, FileEntry, FileInfo, ReconciliationReport } from './types'
-import { decryptFileBody, unwrapAesKey } from './crypto'
+import type { CipherName, ResultsFile, ResultsManifest, FileEntry, FileInfo, ReconciliationReport } from './types'
+import {
+    decryptFileBody,
+    unwrapAesKey,
+    fileAdditionalData,
+    CURRENT_CIPHER,
+    LEGACY_CIPHER,
+    LEGACY_MANIFEST_VERSION,
+    MANIFEST_VERSION,
+} from './crypto'
 import logger from '../lib/logger'
 
 export type DecryptedEntry = FileEntry & { rawAesKey: ArrayBuffer }
@@ -24,6 +32,23 @@ export type ReadOptions = {
     partial?: boolean
 }
 
+export type ReaderOptions = {
+    /**
+     * The job these results are expected to belong to, known out of band (from the caller's own
+     * records — never from the archive). Checked against the manifest, and refused on mismatch,
+     * which is what catches a whole archive swapped in from another job.
+     */
+    jobId?: string
+    /**
+     * Refuse archives whose bodies are not authenticated, i.e. the legacy `AES-CBC` format.
+     *
+     * Off by default so production data written before the cipher field still reads. Turn it on
+     * once no unauthenticated archive can reach this reader — until then, a hostile store can
+     * forge a CBC archive and have it accepted, because CBC verifies nothing.
+     */
+    requireAuthenticatedCipher?: boolean
+}
+
 export class ResultsReader {
     manifest: ResultsManifest = {
         files: {},
@@ -33,6 +58,7 @@ export class ResultsReader {
     private fingerprint: string
     private privateKey: ArrayBuffer
     private readonly additionalKeys: Record<string, string>
+    private readonly options: ReaderOptions
     private decoded = false
     private reconciliation?: ReconciliationReport
     /** manifest key -> the zip entry name it resolves to; only holds entries that exist in both */
@@ -43,17 +69,26 @@ export class ResultsReader {
      *   recipient absent from the original manifest (e.g. a researcher granted access later)
      *   decrypt the same ciphertext: on decode these are spliced into the manifest under
      *   `fingerprint`, so reads stay a single fingerprint lookup with no bypass.
+     * @param options see {@link ReaderOptions}. Pass `jobId` whenever the caller knows which job it
+     *   asked for — without it the archive's own claim about its job goes unchecked.
      */
     constructor(
         zipBlob: Blob,
         privateKey: ArrayBuffer,
         fingerprint: string,
         additionalKeys: Record<string, string> = {},
+        options: ReaderOptions = {},
     ) {
         this.zipReader = new ZipReader(new BlobReader(zipBlob))
         this.fingerprint = fingerprint
         this.privateKey = privateKey
         this.additionalKeys = additionalKeys
+        this.options = options
+    }
+
+    /** Cipher this archive's bodies are encrypted with. Only valid after {@link decode}. */
+    private get cipher(): CipherName {
+        return this.manifest.cipher ?? LEGACY_CIPHER
     }
 
     async extractFiles(options: ReadOptions = {}): Promise<FileEntry[]> {
@@ -98,6 +133,8 @@ export class ResultsReader {
             throw new Error('Manifest not found in zip archive.')
         }
 
+        this.assertManifestSupported()
+
         // Splice any caller-supplied keys into the manifest under our fingerprint, so a recipient
         // not baked into the zip (e.g. a researcher) reads through the same path as everyone else.
         for (const [path, crypt] of Object.entries(this.additionalKeys)) {
@@ -107,6 +144,49 @@ export class ResultsReader {
 
         this.decoded = true
         logger.info(`Finished decoding entries`)
+    }
+
+    /**
+     * Reject a manifest this build cannot read faithfully, before any body is touched.
+     *
+     * Every branch here fails closed. Reading an unknown format by guessing is exactly how a
+     * downgrade slips through: the archive claims something we do not understand, and the honest
+     * answer is to refuse rather than to fall back to the weakest thing we do understand.
+     */
+    private assertManifestSupported(): void {
+        const { version = LEGACY_MANIFEST_VERSION, cipher = LEGACY_CIPHER, jobId } = this.manifest
+
+        if (!Number.isInteger(version) || version < LEGACY_MANIFEST_VERSION || version > MANIFEST_VERSION) {
+            throw new ResultsIntegrityError(
+                `Unsupported manifest version ${JSON.stringify(this.manifest.version)} — ` +
+                    `this build reads up to version ${MANIFEST_VERSION}`,
+            )
+        }
+
+        if (cipher !== CURRENT_CIPHER && cipher !== LEGACY_CIPHER) {
+            throw new ResultsIntegrityError(`Unsupported manifest cipher ${JSON.stringify(cipher)}`)
+        }
+
+        if (this.options.requireAuthenticatedCipher && cipher !== CURRENT_CIPHER) {
+            throw new ResultsIntegrityError(
+                `Archive uses unauthenticated cipher ${JSON.stringify(cipher)} but an authenticated one is required`,
+            )
+        }
+
+        // Only checked when the caller told us which job to expect. A legacy archive carries no
+        // jobId to check against, so it is the caller's own records — not this manifest — that
+        // decide whether an unbound archive is acceptable at all.
+        const expected = this.options.jobId
+        if (expected !== undefined && jobId !== undefined && jobId !== expected) {
+            throw new ResultsIntegrityError(
+                `Archive belongs to job ${JSON.stringify(jobId)}, expected ${JSON.stringify(expected)}`,
+            )
+        }
+        if (expected !== undefined && jobId === undefined && cipher === CURRENT_CIPHER) {
+            throw new ResultsIntegrityError(
+                `Archive declares no job id, expected ${JSON.stringify(expected)} — refusing to read it as unbound`,
+            )
+        }
     }
 
     /**
@@ -256,13 +336,21 @@ export class ResultsReader {
         const crypt = fileEntry.keys[this.fingerprint]?.crypt
         if (!crypt) throw new Error(`file was not encrypted with key signature ${this.fingerprint}`)
 
-        const { aesKey, rawAesKey } = await unwrapAesKey(crypt, this.privateKey)
+        const cipher = this.cipher
+        const { aesKey, rawAesKey } = await unwrapAesKey(crypt, this.privateKey, cipher)
 
         logger.info(`Finished reading file ${entry.filename}`)
+        // AAD is rebuilt from the zip entry name — the same value the writer bound — so a renamed
+        // entry, a body moved between paths, or a splice from another job fails the tag check.
         const contents = await decryptFileBody(
             await encryptedData.arrayBuffer(),
             Buffer.from(fileEntry.iv, 'base64'),
             aesKey,
+            {
+                cipher,
+                additionalData:
+                    cipher === CURRENT_CIPHER ? fileAdditionalData(this.manifest.jobId, entry.filename) : undefined,
+            },
         )
         return { contents, rawAesKey }
     }

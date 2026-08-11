@@ -1,58 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { ZipReader, ZipWriter, BlobReader, BlobWriter, TextWriter, TextReader } from '@zip.js/zip.js'
 import { readPublicKey, readPrivateKey } from '../testing'
+import { tamper } from '../testing/archive'
 import { fingerprintKeyData, pemToArrayBuffer } from '../util'
-import type { ResultsManifest } from './types'
 import { ResultsWriter } from './writer'
 import { ResultsReader } from './reader'
 
 const toArrayBuffer = (str: string): ArrayBuffer => {
     const buf = Buffer.from(str, 'utf-8')
     return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
-}
-
-type TamperOpts = {
-    /** mutate the parsed manifest before it is re-written */
-    manifest?: (m: ResultsManifest) => void
-    /** zip entry names to omit from the rebuilt archive */
-    drop?: string[]
-    /** extra zip entries to inject, name -> body */
-    add?: Record<string, string>
-}
-
-/**
- * Rebuild an archive with the manifest and/or zip entries deliberately out of step. Needed because
- * a fixed ResultsWriter can no longer *produce* drift, yet archives already in storage have it —
- * and a hostile store can forge it at will.
- */
-async function tamper(zip: Blob, opts: TamperOpts): Promise<Blob> {
-    const entries = await new ZipReader(new BlobReader(zip)).getEntries()
-
-    let manifest: ResultsManifest = { files: {} }
-    const bodies: { name: string; blob: Blob }[] = []
-    for (const entry of entries) {
-        if (entry.directory) continue
-        if (entry.filename === 'manifest.json') {
-            manifest = JSON.parse(await entry.getData(new TextWriter())) as ResultsManifest
-        } else {
-            bodies.push({ name: entry.filename, blob: await entry.getData(new BlobWriter()) })
-        }
-    }
-
-    opts.manifest?.(manifest)
-
-    const out = new BlobWriter('application/zip')
-    const writer = new ZipWriter(out)
-    for (const body of bodies) {
-        if (opts.drop?.includes(body.name)) continue
-        await writer.add(body.name, new BlobReader(body.blob))
-    }
-    for (const [name, content] of Object.entries(opts.add ?? {})) {
-        await writer.add(name, new TextReader(content))
-    }
-    await writer.add('manifest.json', new TextReader(JSON.stringify(manifest)))
-    await writer.close()
-    return out.getData()
 }
 
 describe('manifest/zip reconciliation', async () => {
