@@ -67,9 +67,9 @@ export class ResultsReader {
         files: {},
     }
 
-    private zipReader: ZipReader<Blob>
-    private fingerprint: string
-    private privateKey: ArrayBuffer
+    private readonly zipReader: ZipReader<Blob>
+    private readonly fingerprint: string
+    private readonly privateKey: ArrayBuffer
     private readonly additionalKeys: Record<string, string>
     private readonly options: ReaderOptions
     private decoded = false
