@@ -46,6 +46,25 @@ describe('Encryption Library Tests', async () => {
     })
 })
 
+describe('recipient validation', async () => {
+    const publicKey = pemToArrayBuffer(readPublicKey())
+    const fingerprint = await fingerprintKeyData(publicKey)
+
+    it('constructor throws when the recipient list is empty', () => {
+        expect(() => new ResultsWriter([])).toThrow(/at least one recipient/i)
+    })
+
+    it('addFile throws when the recipient list is emptied after construction', async () => {
+        const writer = new ResultsWriter([{ publicKey, fingerprint }])
+        writer.publicKeys = []
+
+        await expect(writer.addFile('test.data', toArrayBuffer('hello world!'))).rejects.toThrow(
+            /at least one recipient/i,
+        )
+        expect(writer.manifest.files).toEqual({})
+    })
+})
+
 describe('listFiles and extractFile', async () => {
     const publicKey = pemToArrayBuffer(readPublicKey())
     const fingerprint = await fingerprintKeyData(publicKey)
