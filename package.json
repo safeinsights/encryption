@@ -27,19 +27,19 @@
     "devDependencies": {
         "@eslint/js": "^10.0.1",
         "@types/debug": "^4.1.13",
-        "@types/node": "^24.12.4",
-        "@vitest/coverage-v8": "^4.1.6",
-        "eslint": "^10.3.0",
-        "eslint-plugin-anti-trojan-source": "^1.1.4",
-        "happy-dom": "^20.9.0",
-        "prettier": "^3.8.3",
-        "tsx": "^4.21.0",
+        "@types/node": "^24.13.3",
+        "@vitest/coverage-v8": "^4.1.11",
+        "eslint": "^10.9.1",
+        "eslint-plugin-anti-trojan-source": "^1.1.7",
+        "happy-dom": "^20.11.15",
+        "prettier": "^3.9.6",
+        "tsx": "^4.23.12",
         "typescript": "^6.0.3",
-        "typescript-eslint": "^8.59.3",
-        "vitest": "^4.1.6"
+        "typescript-eslint": "^8.68.0",
+        "vitest": "^4.1.11"
     },
     "dependencies": {
-        "@zip.js/zip.js": "^2.8.26",
+        "@zip.js/zip.js": "^2.8.61",
         "debug": "^4.4.3"
     }
 }
